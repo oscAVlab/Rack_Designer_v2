@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rack Designer v1 — LA PLAZUELA</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap');
+:root{--bg:#0b0b0e;--s1:#111115;--s2:#19191f;--s3:#222230;--brd:#2a2a35;--brdh:#3e3e4a;--t:#e8e8f0;--td:#8888a0;--tm:#555570}
+*{margin:0;padding:0;box-sizing:border-box}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--brd);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--brdh)}
+*{scrollbar-width:thin;scrollbar-color:var(--brd) transparent}
+body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;font-size:16px;height:100vh;overflow:hidden}
+.app{display:flex;height:100vh}
+.sidebar{width:320px;min-width:220px;max-width:500px;background:var(--s1);border-right:1px solid var(--brd);display:flex;flex-direction:column;position:relative}
+.sidebar-hdr{padding:10px 12px 8px;border-bottom:1px solid var(--brd);flex-shrink:0}
+.sidebar-hdr h1{font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700}
+.sidebar-hdr h1 span{color:var(--tm);font-weight:400;font-size:12px}
+.sidebar-hdr p{color:var(--td);font-size:10px;margin-top:2px;line-height:1.4}
+
+/* Sidebar resize handle */
+.sidebar-resize{position:absolute;top:0;right:-3px;width:6px;height:100%;cursor:col-resize;z-index:30}
+.sidebar-resize:hover{background:rgba(74,159,255,0.3)}
+
+/* Collapsible sidebar sections */
+.sb-section{border-top:1px solid var(--brd);display:flex;flex-direction:column;min-height:0}
+.sb-section.flex-grow{flex:1}
+.sb-section-hdr{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;cursor:pointer;user-select:none;background:var(--s2);flex-shrink:0}
+.sb-section-hdr:hover{background:var(--s3)}
+.sb-section-hdr h3{font-size:14px;color:rgba(232,232,240,0.9);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin:0}
+.sb-section-hdr .sb-arrow{font-size:11px;color:rgba(232,232,240,0.9);transition:transform .15s}
+.sb-section-hdr .sb-arrow.collapsed{transform:rotate(-90deg)}
+.sb-section-body{overflow-y:auto;transition:max-height .2s ease}
+.sb-section-body.collapsed{max-height:0!important;overflow:hidden;padding:0!important}
+
+/* Section resize drag */
+.sb-drag{height:5px;background:var(--s2);border-top:1px solid var(--brd);cursor:ns-resize;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-drag::after{content:'';width:24px;height:2px;background:var(--brdh);border-radius:1px}
+.sb-drag:hover{background:var(--s3)}
+
+.eq-list{padding:4px}
+.cat-lbl{font-size:11px;color:rgba(232,232,240,0.75);letter-spacing:1.5px;text-transform:uppercase;padding:6px 5px 3px;font-weight:600}
+.eq-btn{display:block;width:100%;text-align:left;background:var(--s2);border:1px solid var(--brd);border-radius:4px;padding:5px 8px;margin-bottom:2px;cursor:pointer;color:var(--t);font-family:inherit;font-size:11px;transition:border-color .1s;position:relative;opacity:0.8}
+.eq-btn:hover{border-color:var(--brdh);background:var(--s3);opacity:1}
+.eq-btn.selected{border-color:#4a9fff;background:rgba(74,159,255,0.1);opacity:1}
+.eq-btn.used{opacity:.25;pointer-events:none}
+.eq-btn .en{font-weight:400;font-size:12px}
+.eq-btn .ed{color:var(--td);font-size:10px}
+.eq-btn .ec{position:absolute;top:5px;right:5px;width:8px;height:8px;border-radius:3px}
+.stats-bar{padding:6px 10px;font-size:11px;color:var(--td);flex-shrink:0;border-top:1px solid var(--brd);opacity:0.8}
+.sr{display:flex;justify-content:space-between;margin-bottom:1px}
+.sr .v{color:var(--t);font-weight:600}
+.sr.warn .v{color:#ff5c4a}
+.preset-bar{padding:6px 10px;background:var(--s2);opacity:0.8}
+.rack-cfg{padding:6px 10px;font-size:10px;color:var(--td);opacity:0.8}
+.rack-cfg .cfg-row{display:flex;justify-content:space-between;margin-bottom:1px}
+.rack-cfg .cfg-row .v{color:var(--t);font-weight:600}
+.rack-cfg .cfg-rack{margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--brd)}
+.rack-cfg .cfg-rack:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.rack-cfg .cfg-title{font-size:11px;font-weight:600;margin-bottom:2px}
+.preset-row{display:flex;gap:3px;margin-bottom:3px}
+.preset-row input{flex:1;background:var(--bg);border:1px solid var(--brd);color:var(--t);padding:3px 6px;border-radius:3px;font-family:inherit;font-size:11px}
+.preset-row input:focus{outline:none;border-color:#4a9fff}
+.preset-row button{background:var(--s1);border:1px solid var(--brd);color:var(--t);padding:3px 8px;border-radius:3px;font-family:inherit;font-size:11px;cursor:pointer}
+.preset-list{max-height:200px;overflow-y:auto}
+.pe{display:flex;align-items:center;gap:3px;padding:3px 5px;border:1px solid var(--brd);border-radius:3px;margin-bottom:2px;background:var(--s1);font-size:10px;cursor:pointer;transition:border-color .1s,background .1s}
+.pe:hover{border-color:var(--brdh);background:var(--s3)}
+.pe.pe-active{border-color:#4a9fff;background:rgba(74,159,255,0.08)}
+.pe .pe-drag{cursor:grab;color:var(--tm);font-size:10px;padding:0 2px;user-select:none}
+.pe .pe-drag:active{cursor:grabbing}
+.pe .pen{flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pe .pen input{background:var(--bg);border:1px solid #4a9fff;color:var(--t);font-family:inherit;font-size:10px;padding:1px 4px;border-radius:2px;width:100%}
+.pe .pei{color:var(--tm);font-size:9px;margin-right:2px}
+.pe .pe-acts{display:flex;gap:1px;opacity:0;transition:opacity .1s}
+.pe:hover .pe-acts{opacity:1}
+.pe .pa{color:var(--tm);cursor:pointer;font-size:11px;padding:1px 3px;border-radius:2px;background:transparent;border:none;font-family:inherit}
+.pe .pa:hover{color:var(--t);background:var(--s3)}
+.pe .pa.del:hover{color:#ff5c4a}
+.pe-dragging{opacity:0.5;border-color:#4a9fff!important}
+.pe-drop-target{border-top:2px solid #4a9fff!important}
+
+/* Confirm modal */
+.confirm-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:100;display:flex;align-items:center;justify-content:center}
+.confirm-box{background:var(--s1);border:1px solid var(--brd);border-radius:6px;padding:16px 20px;min-width:260px;max-width:340px;font-size:12px}
+.confirm-box p{margin-bottom:12px;color:var(--t);line-height:1.4}
+.confirm-box .cb-btns{display:flex;gap:6px;justify-content:flex-end}
+.confirm-box .cb-btn{padding:4px 14px;border-radius:3px;border:1px solid var(--brd);background:var(--s2);color:var(--t);font-family:inherit;font-size:11px;cursor:pointer}
+.confirm-box .cb-btn:hover{border-color:var(--brdh);background:var(--s3)}
+.confirm-box .cb-btn.danger{border-color:#ff5c4a;color:#ff5c4a}
+.confirm-box .cb-btn.danger:hover{background:rgba(255,92,74,0.15)}
+.pmsg{font-size:10px;min-height:12px;padding:1px 0}
+.pmsg.ok{color:#4aff9f}.pmsg.err{color:#ff5c4a}.pmsg.ld{color:#4a9fff}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.toolbar{display:flex;align-items:center;gap:5px;padding:5px 10px;border-bottom:1px solid var(--brd);background:var(--s1);flex-wrap:wrap}
+.toolbar label{font-size:11px;color:var(--td)}
+.toolbar select,.toolbar button{background:var(--s2);border:1px solid var(--brd);color:var(--t);padding:3px 8px;border-radius:3px;font-family:inherit;font-size:11px;cursor:pointer}
+.toolbar .sep{width:1px;height:16px;background:var(--brd)}
+.toolbar .msg{font-size:11px;font-weight:600}
+.toolbar .msg.ok{color:#4aff9f}.toolbar .msg.warn{color:#ff5c4a}.toolbar .msg.info{color:#4a9fff}
+
+.legend-bar{display:flex;gap:10px;padding:4px 10px;border-bottom:1px solid var(--brd);background:var(--s2);font-size:11px;color:var(--td);align-items:center;flex-wrap:wrap}
+.legend-bar .ld{display:inline-flex;align-items:center;gap:3px}
+.legend-bar .ld .lb{width:14px;height:8px;border:1px dashed;border-radius:2px}
+
+.rack-tabs{display:flex;gap:2px;padding:4px 10px 0;background:var(--s1);border-bottom:1px solid var(--brd)}
+.rack-tab{padding:5px 14px;font-size:13px;cursor:pointer;border:1px solid var(--brd);border-bottom:none;border-radius:5px 5px 0 0;background:var(--s2);color:var(--td);font-family:inherit;font-weight:500}
+.rack-tab.active{background:var(--bg);color:var(--t);border-color:var(--brdh)}
+.rack-tab .rtag{font-size:10px;color:var(--tm);margin-left:5px}
+
+.workspace{flex:1;display:flex;overflow:auto;padding:12px;gap:110px;align-items:flex-start;justify-content:center;flex-wrap:wrap;min-height:0}
+
+.view-col{display:flex;flex-direction:column;align-items:center}
+.view-label{font-size:12px;color:var(--tm);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;font-weight:500}
+.rack-box{position:relative;border:2px solid var(--brdh);border-radius:5px;background:var(--s1);display:flex;flex-direction:column;gap:3px;padding:3px}
+.rack-lbl{text-align:center;font-size:11px;color:var(--tm);margin:10px 0;letter-spacing:1px}
+.slot-row{display:flex;align-items:center;gap:0}
+.slot-lbl-out{font-size:10px;color:var(--tm);font-weight:600;width:28px;text-align:right;padding-right:5px;flex-shrink:0;user-select:none}
+.slot{border:1px solid var(--brd);border-radius:3px;position:relative;cursor:crosshair;flex:1}
+
+.side-rack{border:2px solid var(--brdh);border-radius:5px;background:var(--s1);position:relative}
+.sd{position:absolute;left:0;right:0;height:1px;background:var(--brd)}
+.si{position:absolute;border-radius:3px;font-size:8px;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;pointer-events:none}
+.side-lbl{position:absolute;font-size:10px;color:var(--tm)}
+
+.pi{position:absolute;border-radius:3px;z-index:5;user-select:none;overflow:visible}
+.pi.unlocked{cursor:move}
+.pi.locked{cursor:default;opacity:.85}
+.pi:hover{z-index:10}
+.pi .pi-body{width:100%;height:100%;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:10px;text-align:center;line-height:1.2;position:relative}
+.pi .pn{font-weight:600;pointer-events:none;font-size:11px}
+.pi .pd{opacity:.5;pointer-events:none;font-size:9px}
+.pi .pb{position:absolute;top:-2px;right:-2px;display:flex;gap:2px;opacity:0;transition:opacity .1s;z-index:20}
+.pi:hover .pb{opacity:1}
+.pi .pbtn{width:18px;height:18px;border-radius:3px;border:none;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);color:#fff}
+.pi .pbtn:hover{background:rgba(0,0,0,.95)}
+.czone{position:absolute;pointer-events:none;border:1px dashed;opacity:0.5;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7px;overflow:hidden;line-height:1}
+.czone.audio{border-color:#ff9944;background:rgba(255,153,68,0.08);color:#ff9944}
+.czone.data{border-color:#44aaff;background:rgba(68,170,255,0.08);color:#44aaff}
+.czone.power{border-color:#ff4466;background:rgba(255,68,102,0.08);color:#ff4466}
+.czone.ctrl{border-color:#44ffaa;background:rgba(68,255,170,0.08);color:#44ffaa}
+
+/* Top view: Apollo & HotShot are rectangular (no clip-path).
+   Trapezoidal profile only appears in side view (rendered via JS). */
+
+.summary-wrap{display:flex;flex-direction:column;border-top:none;background:var(--s1);min-height:80px}
+.summary-drag{height:8px;background:var(--s2);border-top:1px solid var(--brd);border-bottom:1px solid var(--brd);cursor:ns-resize;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.summary-drag::after{content:'';width:40px;height:2px;background:var(--brdh);border-radius:2px}
+.summary-drag:hover{background:var(--s3)}
+.summary-inner{flex:1;overflow-y:auto;padding:6px 12px}
+.summary-inner h3{font-size:10px;color:var(--tm);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.summary-inner h3 button{background:var(--s2);border:1px solid var(--brd);color:var(--td);padding:2px 10px;border-radius:3px;font-family:inherit;font-size:10px;cursor:pointer}
+.summary-inner h3 button:hover{border-color:var(--brdh);color:var(--t)}
+.sum-table{width:100%;border-collapse:collapse;font-size:11px}
+.sum-table th{text-align:left;color:var(--tm);font-weight:600;padding:2px 6px;border-bottom:1px solid var(--brd);font-size:10px;letter-spacing:0.5px;white-space:nowrap}
+.sum-table td{padding:2px 6px;border-bottom:1px solid rgba(42,42,53,0.5);white-space:nowrap}
+.sum-table tr:hover td{background:var(--s2)}
+.sum-table .dot{display:inline-block;width:8px;height:8px;border-radius:3px;margin-right:5px;vertical-align:middle}
+.sum-table .loc{font-size:10px;color:var(--tm)}
+.sum-table .loc.a{color:#22d4bf}
+.sum-table .loc.b{color:#d466ff}
+.sum-table .loc.out{color:var(--tm);font-style:italic}
+.sum-total{margin-top:5px;font-size:11px;color:var(--td);display:flex;gap:16px;flex-wrap:wrap}
+
+.pwr-warn{color:#ff5c4a;font-weight:600}
+.pwr-ok{color:#ff6680}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:1200px){
+  .workspace{gap:40px;padding:8px}
+}
+@media(max-width:900px){
+  .app{flex-direction:column}
+  .sidebar{width:100%!important;max-width:100%!important;min-width:0!important;max-height:40vh;border-right:none;border-bottom:1px solid var(--brd)}
+  .sidebar-resize{display:none}
+  .main{flex:1;min-height:0}
+  .workspace{gap:20px;padding:6px;justify-content:flex-start}
+}
+@media(max-width:600px){
+  .toolbar{gap:3px;padding:4px 6px}
+  .toolbar label{font-size:10px}
+  .toolbar select,.toolbar button{font-size:10px;padding:2px 5px}
+  .legend-bar{font-size:10px;gap:6px;padding:3px 6px}
+  .rack-tab{padding:4px 10px;font-size:11px}
+  .sum-table{font-size:10px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-resize" id="sidebar-resize"></div>
+  <div class="sidebar-hdr">
+    <h1>Rack Designer <span>v1</span></h1>
+    <p>Click equipo → click rack · Drag mover<br>🔄 rotar · 📐 conect · ⬆⬇ techo/piso · 🔒 fijar · ✕ quitar</p>
+  </div>
+
+  <!-- Rack Config Section -->
+  <div class="sb-section" id="wrap-sec-rack">
+    <div class="sb-section-hdr" onclick="togSection('sec-rack')"><h3>Configuración Racks</h3><span class="sb-arrow" id="arr-sec-rack">▼</span></div>
+    <div class="sb-section-body" id="sec-rack">
+      <div class="rack-cfg" id="rack-cfg"></div>
+    </div>
+  </div>
+
+  <!-- Stats (below rack config) -->
+  <div class="stats-bar" id="stats"></div>
+  <div class="sb-drag" data-resize="sec-rack,sec-eq"></div>
+
+  <!-- Equipos Section -->
+  <div class="sb-section flex-grow" id="wrap-sec-eq">
+    <div class="sb-section-hdr" onclick="togSection('sec-eq')"><h3>Dispositivos</h3><span class="sb-arrow" id="arr-sec-eq">▼</span></div>
+    <div class="sb-section-body" id="sec-eq" style="flex:1;overflow-y:auto">
+      <div class="eq-list" id="eq-list"></div>
+    </div>
+  </div>
+
+  <div class="sb-drag" data-resize="sec-eq,sec-preset"></div>
+
+  <!-- Presets Section -->
+  <div class="sb-section" id="wrap-sec-preset" style="min-height:60px">
+    <div class="sb-section-hdr" onclick="togSection('sec-preset')"><h3>Presets</h3><span class="sb-arrow" id="arr-sec-preset">▼</span></div>
+    <div class="sb-section-body" id="sec-preset" style="flex:1;overflow-y:auto">
+      <div class="preset-bar">
+        <div class="preset-row"><input type="text" id="pname" placeholder="Nombre..."><button onclick="savePreset()">💾</button></div>
+        <div class="pmsg" id="pmsg"></div>
+        <div class="preset-list" id="plist"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="main">
+  <div class="toolbar">
+    <label>U:</label>
+    <select id="sel-u" onchange="rebuild()"><option value="2">2U</option><option value="3">3U</option><option value="4">4U</option></select>
+    <label>Prof:</label>
+    <select id="sel-d" onchange="rebuild()">
+      <option value="228">9"</option>
+      <option value="254">10"</option>
+      <option value="305">12"</option>
+      <option value="330">13"</option>
+      <option value="356">14"</option>
+    </select>
+    <label>Conect:</label>
+    <select id="sel-conn" onchange="rebuild()"><option value="real">Reales</option><option value="L">L (25mm)</option><option value="rect">Rectos (60mm)</option><option value="none">Ocultar</option></select>
+    <label>Cond:</label>
+    <select id="sel-cond-mode" onchange="onCondModeChange()" style="font-size:10px">
+      <option value="per-rack">Por rack</option>
+      <option value="shared">Compartido A+B</option>
+    </select>
+    <select id="sel-cond" onchange="rebuild()">
+      <option value="none">Sin acondicionador</option>
+      <option value="furman">Furman M-10x E</option>
+      <option value="furman210">Furman AC-210 A E</option>
+      <option value="pgp">BLA PG-P</option>
+    </select>
+    <div class="sep"></div>
+    <button onclick="clearAll()">Vaciar</button>
+    <span class="msg" id="msg"></span>
+  </div>
+  <div class="legend-bar">
+    <span style="color:var(--tm);font-weight:600">CONECTORES:</span>
+    <span class="ld"><span class="lb" style="border-color:#ff9944;background:rgba(255,153,68,0.2)"></span>Audio</span>
+    <span class="ld"><span class="lb" style="border-color:#44aaff;background:rgba(68,170,255,0.2)"></span>Data</span>
+    <span class="ld"><span class="lb" style="border-color:#ff4466;background:rgba(255,68,102,0.2)"></span>Power</span>
+    <span class="ld"><span class="lb" style="border-color:#44ffaa;background:rgba(68,255,170,0.2)"></span>Control</span>
+    <div class="sep"></div>
+    <span style="color:var(--tm)">▲top=trasera ▼bottom=frente</span>
+  </div>
+  <div class="rack-tabs">
+    <div class="rack-tab active" id="tab-a" onclick="switchRack('a')">Rack A<span class="rtag" id="tag-a"></span></div>
+    <div class="rack-tab" id="tab-b" onclick="switchRack('b')">Rack B<span class="rtag" id="tag-b"></span></div>
+  </div>
+  <div class="workspace" id="workspace"></div>
+  <div class="summary-wrap" id="summary-wrap" style="height:160px">
+    <div class="summary-drag" id="summary-drag"></div>
+    <div class="summary-inner" id="summary"></div>
+  </div>
+</div>
+</div>
+<script>
+// ===== POWER CONDITIONERS (max W / max A @ 230V) =====
+const CONDITIONERS={
+  'none':{name:'Sin acondicionador',maxW:Infinity,maxA:Infinity},
+  'furman':{name:'Furman M-10x E',maxW:2300,maxA:10},
+  'furman210':{name:'Furman AC-210 A E',maxW:2300,maxA:10},
+  'pgp':{name:'BLA PG-P',maxW:1380,maxA:6}
+};
+
+const EQ=[
+  {id:'pa1u',name:'PlayAudio1U',w:460,h:44,d:200,wt:2.7,watts:15,amps:0.07,col:'#3378cc',cat:'play',conn:[{side:0,type:'ctrl',depth:5,label:'Display/Enc/HP'},{side:2,type:'audio',depth:30,label:'12×XLR out'},{side:2,type:'data',depth:25,label:'USB-C×2+Eth+MIDI'},{side:2,type:'power',depth:30,label:'IEC'}]},
+  {id:'ap1',name:'Apollo Twin 1',w:160,h:66,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'voz',shape:'trap-apollo',conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
+  {id:'ap2',name:'Apollo Twin 2',w:160,h:66,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'voz',shape:'trap-apollo',conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
+  {id:'hs1',name:'HotShot Nitroh',w:91,h:51,d:99,wt:0.5,watts:0,amps:0,col:'#cc8822',cat:'voz',shape:'trap-hotshot',conn:[{side:2,type:'audio',depth:25,label:'2×XLR in+1×XLR out'},{side:2,type:'ctrl',depth:0,label:'Switch'}]},
+  {id:'hs2',name:'HotShot Indio',w:91,h:51,d:99,wt:0.5,watts:0,amps:0,col:'#cc8822',cat:'voz',shape:'trap-hotshot',conn:[{side:2,type:'audio',depth:25,label:'2×XLR in+1×XLR out'},{side:2,type:'ctrl',depth:0,label:'Switch'}]},
+  {id:'bt',name:'Backtrack',w:150,h:48,d:117,wt:1.0,watts:12,amps:0.8,col:'#cc3322',cat:'conm',conn:[{side:2,type:'ctrl',depth:10,label:'HP+Knobs'},{side:2,type:'audio',depth:25,label:'TRS×4+XLR×2'},{side:2,type:'power',depth:15,label:'15V DC'}]},
+  {id:'sw',name:'Switch PoE',w:100,h:25,d:98,wt:0.4,watts:60,amps:0.26,col:'#22aa66',cat:'red',conn:[{side:0,type:'data',depth:20,label:'5×RJ45'},{side:2,type:'power',depth:15,label:'DC'}]},
+  {id:'slimq',name:'SlimQ F240',w:127,h:33,d:63,wt:0.4,watts:240,amps:1.04,col:'#556677',cat:'pwr',conn:[{side:0,type:'data',depth:15,label:'USB-C×2+DC'},{side:2,type:'power',depth:15,label:'AC cable'}]},
+  {id:'pgp',name:'BLA PG-P',w:245,h:44,d:115,wt:0.8,watts:0,amps:0,col:'#cc2244',cat:'pwr',conn:[{side:0,type:'power',depth:40,label:'6×EU plugs'},{side:2,type:'power',depth:15,label:'AC in'}]},
+  {id:'ys1',name:'Y Split 1',w:30,h:25,d:80,wt:0.1,watts:0,amps:0,col:'#22aacc',cat:'cab',conn:[]},
+  {id:'ys2',name:'Y Split 2',w:30,h:25,d:80,wt:0.1,watts:0,amps:0,col:'#22aacc',cat:'cab',conn:[]},
+  {id:'furman',name:'Furman M-10x E',w:483,h:44,d:190,wt:2.3,watts:0,amps:0,col:'#aa3355',cat:'pwr',conn:[{side:0,type:'ctrl',depth:5,label:'Switch+LED+outlet'},{side:2,type:'power',depth:25,label:'10×IEC+IEC in'}]},
+  {id:'furman210',name:'Furman AC-210 A E',w:267,h:44,d:146,wt:1.6,watts:0,amps:0,col:'#993366',cat:'pwr',conn:[{side:0,type:'ctrl',depth:5,label:'Switch+LEDs'},{side:0,type:'power',depth:20,label:'IEC in'},{side:2,type:'power',depth:20,label:'2×IEC out'}]},
+  {id:'panel1',name:'Panel XLR 1U',w:483,h:44,d:30,wt:0.5,col:'#666688',cat:'panel',watts:0,amps:0,conn:[{side:0,type:'audio',depth:25,label:'XLR front'}]},
+  {id:'panel2',name:'Panel Ethercon 1U',w:483,h:44,d:30,wt:0.4,col:'#448866',cat:'panel',watts:0,amps:0,conn:[{side:0,type:'data',depth:20,label:'Eth front'}]},
+  {id:'panel3',name:'Panel Combo 1U',w:483,h:44,d:30,wt:0.5,col:'#886644',cat:'panel',watts:0,amps:0,conn:[{side:0,type:'audio',depth:25,label:'XLR+Eth'}]},
+  {id:'panel4',name:'Panel ciego 1U',w:483,h:44,d:5,wt:0.3,col:'#333344',cat:'panel',watts:0,amps:0,conn:[]},
+  {id:'bandeja',name:'Bandeja 1U',w:483,h:44,d:200,wt:0.8,col:'#444455',cat:'panel',watts:0,amps:0,conn:[]},
+];
+const CATS={play:'Playback',voz:'Voces/Apollo',conm:'Conmutación',red:'Red',pwr:'Energía',panel:'Paneles/Rack',cab:'Cables'};
+const CO=['play','voz','conm','red','pwr','panel','cab'];
+const RW=483,UH=44.45,SC=0.95;
+const gEq=id=>EQ.find(e=>e.id===id);
+
+// ===== TWO RACK STATE =====
+let racks={
+  a:{u:2,d:228,conditioner:'none',items:[]},
+  b:{u:2,d:228,conditioner:'none',items:[]}
+};
+let sharedCondMode=false; // false = per-rack, true = shared A+B
+let activeRack='a';
+let selId=null,drag=null,dOff={x:0,y:0};
+
+function cur(){return racks[activeRack]}
+function isUsed(id){return racks.a.items.some(i=>i.id===id)||racks.b.items.some(i=>i.id===id)}
+function rotDims(eq,rot){return(rot===90||rot===270)?{w:eq.d,d:eq.w}:{w:eq.w,d:eq.d}}
+function rotSide(s,rot){return(s+rot/90)%4}
+
+// ===== POWER VALIDATION =====
+function calcRackPower(rack){
+  let totalW=0,totalA=0;
+  for(const it of rack.items){
+    const eq=gEq(it.id);
+    if(eq){totalW+=eq.watts||0;totalA+=eq.amps||0}
+  }
+  return{totalW,totalA};
+}
+
+function calcCombinedPower(){
+  const a=calcRackPower(racks.a),b=calcRackPower(racks.b);
+  return{totalW:a.totalW+b.totalW,totalA:a.totalA+b.totalA};
+}
+
+function getPowerStatus(rack){
+  const cond=CONDITIONERS[rack.conditioner||'none'];
+  if(sharedCondMode){
+    // In shared mode, validate combined A+B against the active rack's conditioner
+    const pw=calcCombinedPower();
+    const sharedCond=CONDITIONERS[racks.a.conditioner||'none'];
+    const overW=pw.totalW>sharedCond.maxW;
+    const overA=pw.totalA>sharedCond.maxA;
+    return{...pw,cond:sharedCond,overW,overA,over:overW||overA};
+  }
+  const pw=calcRackPower(rack);
+  const overW=pw.totalW>cond.maxW;
+  const overA=pw.totalA>cond.maxA;
+  return{...pw,cond,overW,overA,over:overW||overA};
+}
+
+function onCondModeChange(){
+  sharedCondMode=document.getElementById('sel-cond-mode').value==='shared';
+  if(sharedCondMode){
+    // Sync both racks to same conditioner
+    racks.b.conditioner=racks.a.conditioner;
+  }
+  rebuild();
+}
+
+function switchRack(r){
+  activeRack=r;
+  document.getElementById('tab-a').className='rack-tab'+(r==='a'?' active':'');
+  document.getElementById('tab-b').className='rack-tab'+(r==='b'?' active':'');
+  document.getElementById('sel-u').value=cur().u;
+  document.getElementById('sel-d').value=cur().d;
+  document.getElementById('sel-cond').value=cur().conditioner||'none';
+  selId=null;
+  rebuild();
+}
+
+function renderList(){
+  let h='';
+  for(const c of CO){
+    const es=EQ.filter(e=>e.cat===c);
+    if(!es.length)continue;
+    h+=`<div class="cat-lbl">${CATS[c]}</div>`;
+    for(const e of es){
+      const u=isUsed(e.id),s=selId===e.id;
+      const pwInfo=e.watts>0?` · ${e.watts}W`:''
+      h+=`<button class="eq-btn${s?' selected':''}${u?' used':''}" onclick="selEq('${e.id}')"${u?' disabled':''}>
+        <div class="ec" style="background:${e.col}"></div>
+        <div class="en">${e.name}</div>
+        <div class="ed">${e.w}×${e.d}×${e.h}mm · ${e.wt}kg${pwInfo}</div></button>`;
+    }
+  }
+  document.getElementById('eq-list').innerHTML=h;
+  document.getElementById('tag-a').textContent=racks.a.items.length?` (${racks.a.items.length})`:'';
+  document.getElementById('tag-b').textContent=racks.b.items.length?` (${racks.b.items.length})`:'';
+}
+
+function selEq(id){if(isUsed(id))return;selId=selId===id?null:id;renderList();
+  const m=document.getElementById('msg');
+  if(selId){m.className='msg info';m.textContent=`→ Click en rack ${activeRack.toUpperCase()}: ${gEq(selId).name}`}
+  else{m.className='msg';m.textContent=''}
+}
+
+function rebuild(){
+  cur().u=+document.getElementById('sel-u').value;
+  cur().d=+document.getElementById('sel-d').value;
+  cur().conditioner=document.getElementById('sel-cond').value;
+  if(sharedCondMode){
+    // Both racks share the same conditioner
+    racks.a.conditioner=cur().conditioner;
+    racks.b.conditioner=cur().conditioner;
+  }
+  renderWorkspace();renderList();updateStats();
+}
+
+function renderWorkspace(){
+  const ws=document.getElementById('workspace');
+  const r=cur();
+  const rD=r.d;
+
+  // Build top view
+  let topHTML=`<div class="view-col"><div class="view-label">Vista superior · Rack ${activeRack.toUpperCase()}</div>
+    <div class="rack-lbl" style="margin-bottom:14px">▲ trasera</div>
+    <div class="rack-box" id="rack-box" style="width:${Math.round(RW*SC)+32}px">`;
+  for(let s=r.u-1;s>=0;s--){
+    topHTML+=`<div class="slot-row"><span class="slot-lbl-out">${s+1}U</span><div class="slot" data-slot="${s}" style="height:${Math.round(rD*SC)}px"></div></div>`;
+  }
+  topHTML+=`</div><div class="rack-lbl" style="margin-top:14px">▼ frente</div></div>`;
+
+  // Build side view
+  const tH=r.u*UH,sS=2.2;
+  const pH=Math.round(tH*sS),pW=Math.round(rD*sS*0.4);
+  let sideHTML=`<div class="view-col"><div class="view-label">Vista lateral</div>
+    <div class="side-rack" id="side-rack" style="width:${pW}px;height:${pH}px">`;
+  for(let i=1;i<r.u;i++){
+    sideHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*sS)}px"></div>`;
+  }
+  sideHTML+=`<div class="side-lbl" style="left:2px;bottom:-16px">frente</div>`;
+  sideHTML+=`<div class="side-lbl" style="right:2px;bottom:-16px">atrás</div>`;
+  // Side items
+  for(const it of r.items){
+    const eq=gEq(it.id);if(!eq)continue;
+    // Per-item ceiling anchor: if ceil, item hangs from top of its slot
+    const isCeil=!!it.ceil;
+    let bMM;
+    if(isCeil){
+      // Anchor to ceiling of slot: top of slot is (slot+1)*UH, item top = slot ceiling - 0
+      bMM=((it.slot+1)*UH)-eq.h;
+    }else{
+      bMM=it.slot*UH;
+    }
+    const tp=Math.round(pH-(bMM+eq.h)*sS);
+    const rd=rotDims(eq,it.rot||0);
+    // In top view: z=0 is trasera (top/back), z=max is frente (bottom/front)
+    // In side view: left=frente, right=atrás → flip z axis
+    const lp=Math.round((rD-(it.z||0)-rd.d)*sS*0.4);
+    const wp=Math.round(rd.d*sS*0.4);
+    const hp=Math.max(Math.round(eq.h*sS),8);
+    
+    // Trapezoidal side profile for apollo and hotshot
+    // Stepped: full height on connection side, shorter on opposite side
+    // Side view: left=front, right=back
+    // Connections originally on side 2 (back). Rotation shifts them.
+    let extraStyle='';
+    if(eq.shape){
+      const rot=it.rot||0;
+      // Determine which side connections face after rotation
+      // side 2 rotated: (2 + rot/90) % 4
+      const connSide=(2+rot/90)%4;
+      // connSide 2 = back (right in side view) → step left, full right
+      // connSide 0 = front (left in side view) → step right, full left (flipped)
+      // connSide 1 or 3 = lateral → no step visible in side view
+      if(connSide===2||connSide===0){
+        const flipped=(connSide===0);
+        if(eq.shape==='trap-apollo'){
+          extraStyle=flipped
+            ?'clip-path:polygon(0% 0%,50% 0%,50% 40%,100% 40%,100% 100%,0% 100%);'
+            :'clip-path:polygon(0% 40%,50% 40%,50% 0%,100% 0%,100% 100%,0% 100%);';
+        }else if(eq.shape==='trap-hotshot'){
+          extraStyle=flipped
+            ?'clip-path:polygon(0% 0%,55% 0%,55% 50%,100% 50%,100% 100%,0% 100%);'
+            :'clip-path:polygon(0% 50%,45% 50%,45% 0%,100% 0%,100% 100%,0% 100%);';
+        }
+      }
+      // connSide 1 or 3: connections face left/right wall, side view shows rectangular profile
+    }
+    
+    sideHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col};${extraStyle}"><span>${eq.name.split(' ')[0]}</span></div>`;
+  }
+  sideHTML+=`</div>
+    <div style="font-size:11px;color:var(--tm);margin-top:8px;text-align:center">
+      ${r.u}U × ${rD}mm<br>${RW}×${Math.round(r.u*UH)}×${rD}mm
+    </div></div>`;
+
+  ws.innerHTML=topHTML+sideHTML;
+
+  // Attach events to slots
+  document.querySelectorAll('.slot').forEach(sl=>{
+    sl.addEventListener('mousedown',e=>onSlotDown(e,+sl.dataset.slot));
+    sl.addEventListener('mousemove',onMove);
+  });
+  document.addEventListener('mouseup',onUp);
+
+  // Place items
+  for(const it of r.items)placeVis(it);
+}
+
+function onSlotDown(e,s){
+  const t=e.target.closest('.pi');
+  if(t){
+    if(e.target.classList.contains('pbtn'))return;
+    const it=cur().items.find(i=>i.id===t.dataset.iid);
+    if(!it||it.locked)return;
+    drag=it;
+    const r=t.getBoundingClientRect();
+    dOff={x:e.clientX-r.left,y:e.clientY-r.top};
+    t.style.zIndex='20';e.preventDefault();return;
+  }
+  if(!selId)return;
+  const eq=gEq(selId);if(!eq)return;
+  const sl=e.currentTarget,rc=sl.getBoundingClientRect();
+  const rd=rotDims(eq,0);
+  let x=Math.round((e.clientX-rc.left)/SC-rd.w/2);
+  let z=Math.round((e.clientY-rc.top)/SC-rd.d/2);
+  x=Math.max(0,Math.min(RW-rd.w,x));
+  z=Math.max(0,Math.min(cur().d-rd.d,z));
+  cur().items.push({id:eq.id,slot:s,x,z,rot:0,locked:false,showConn:true});
+  selId=null;rebuild();
+
+  // Check power after adding
+  const ps=getPowerStatus(cur());
+  const m=document.getElementById('msg');
+  if(ps.over){
+    m.className='msg warn';
+    m.textContent=`⚠ Energía: ${ps.totalW}W/${ps.cond.maxW}W · ${ps.totalA.toFixed(1)}A/${ps.cond.maxA}A`;
+  }else{
+    m.className='msg ok';m.textContent='✓ Colocado';
+  }
+}
+
+function onMove(e){
+  if(!drag)return;
+  const eq=gEq(drag.id);
+  const rd=rotDims(eq,drag.rot||0);
+  const sl=document.querySelector(`.slot[data-slot="${drag.slot}"]`);
+  if(!sl)return;
+  const rc=sl.getBoundingClientRect();
+  drag.x=Math.max(0,Math.min(RW-rd.w,Math.round((e.clientX-rc.left-dOff.x)/SC)));
+  drag.z=Math.max(0,Math.min(cur().d-rd.d,Math.round((e.clientY-rc.top-dOff.y)/SC)));
+  const el=sl.querySelector(`[data-iid="${drag.id}"]`);
+  if(el){el.style.left=Math.round(drag.x*SC)+'px';el.style.top=Math.round(drag.z*SC)+'px'}
+}
+
+function onUp(){if(drag){drag=null;dOff={x:0,y:0};rebuild()}}
+
+function placeVis(it){
+  const eq=gEq(it.id);if(!eq)return;
+  const sl=document.querySelector(`.slot[data-slot="${it.slot}"]`);if(!sl)return;
+  const rd=rotDims(eq,it.rot||0);
+  const div=document.createElement('div');
+  let classes='pi'+(it.locked?' locked':' unlocked');
+  // No shape class in top view — top view is always rectangular
+  div.className=classes;
+  div.dataset.iid=it.id;
+  div.style.cssText=`left:${Math.round(it.x*SC)}px;top:${Math.round(it.z*SC)}px;width:${Math.round(rd.w*SC)}px;height:${Math.round(rd.d*SC)}px`;
+
+  const body=document.createElement('div');
+  body.className='pi-body';
+  body.style.cssText=`background:${eq.col}20;border:1px solid ${eq.col}80;color:${eq.col}`;
+  body.innerHTML=`<span class="pn">${eq.name}</span><span class="pd">${rd.w}×${rd.d}</span>`;
+  div.appendChild(body);
+
+  const cv=it.showConn!==false;
+  const isCeil=!!it.ceil;
+  const btns=document.createElement('span');btns.className='pb';
+  btns.innerHTML=`<button class="pbtn" onclick="event.stopPropagation();rotIt('${it.id}')">🔄</button>
+    <button class="pbtn" onclick="event.stopPropagation();togConn('${it.id}')">${cv?'📐':'📏'}</button>
+    <button class="pbtn" onclick="event.stopPropagation();togCeil('${it.id}')" title="${isCeil?'Anclado al techo':'Anclado al piso'}">${isCeil?'⬆':'⬇'}</button>
+    <button class="pbtn" onclick="event.stopPropagation();togLock('${it.id}')">${it.locked?'🔓':'🔒'}</button>
+    <button class="pbtn" onclick="event.stopPropagation();remIt('${it.id}')">✕</button>`;
+  div.appendChild(btns);
+
+  const cm=document.getElementById('sel-conn').value;
+  if(cv&&cm!=='none'){
+    for(const c of eq.conn){
+      let depth=c.depth;
+      if(cm==='L')depth=Math.min(depth,25);
+      else if(cm==='rect')depth=Math.min(Math.max(depth,40),60);
+      if(depth<=0)continue;
+      const rs=rotSide(c.side,it.rot||0);
+      const cz=document.createElement('div');cz.className=`czone ${c.type}`;
+      const dp=Math.round(depth*SC);
+      switch(rs){
+        case 0:cz.style.cssText=`left:1px;right:1px;bottom:${-dp}px;height:${dp}px`;break;
+        case 1:cz.style.cssText=`top:1px;bottom:1px;right:${-dp}px;width:${dp}px`;break;
+        case 2:cz.style.cssText=`left:1px;right:1px;top:${-dp}px;height:${dp}px`;break;
+        case 3:cz.style.cssText=`top:1px;bottom:1px;left:${-dp}px;width:${dp}px`;break;
+      }
+      cz.innerHTML=`<span style="pointer-events:none">${c.label}</span>`;
+      div.appendChild(cz);
+    }
+  }
+  sl.appendChild(div);
+}
+
+function rotIt(id){const it=cur().items.find(i=>i.id===id);if(!it)return;it.rot=((it.rot||0)+90)%360;
+  const eq=gEq(id),rd=rotDims(eq,it.rot);
+  it.x=Math.max(0,Math.min(RW-rd.w,it.x));it.z=Math.max(0,Math.min(cur().d-rd.d,it.z));rebuild()}
+function togLock(id){const i=cur().items.find(x=>x.id===id);if(i)i.locked=!i.locked;rebuild()}
+function togCeil(id){const i=cur().items.find(x=>x.id===id);if(i)i.ceil=!i.ceil;rebuild()}
+function togConn(id){const i=cur().items.find(x=>x.id===id);if(i)i.showConn=!i.showConn;rebuild()}
+function remIt(id){cur().items=cur().items.filter(i=>i.id!==id);rebuild()}
+function clearAll(){cur().items=[];selId=null;rebuild()}
+
+// ===== COLLAPSIBLE SIDEBAR SECTIONS =====
+function togSection(id){
+  const body=document.getElementById(id);
+  const arrow=document.getElementById('arr-'+id);
+  body.classList.toggle('collapsed');
+  arrow.classList.toggle('collapsed');
+}
+
+// ===== RACK CONFIG PANEL =====
+const DEPTH_INCH={228:'9"',254:'10"',305:'12"',330:'13"',356:'14"'};
+
+function renderRackCfg(){
+  const el=document.getElementById('rack-cfg');
+  if(!el)return;
+  let html='';
+  
+  if(sharedCondMode){
+    // Shared: show combined power info
+    const pw=calcCombinedPower();
+    const cond=CONDITIONERS[racks.a.conditioner||'none'];
+    const overW=pw.totalW>cond.maxW;
+    const overA=pw.totalA>cond.maxA;
+    const over=overW||overA;
+    const pwCls=over?'color:#ff5c4a;font-weight:600':'color:#ff6680';
+    const maxStr=cond.maxW===Infinity?'∞':`${cond.maxW}W / ${cond.maxA}A`;
+    
+    for(const rk of ['a','b']){
+      const r=racks[rk];
+      const label=rk==='a'?'Rack A':'Rack B';
+      const col=rk==='a'?'#22d4bf':'#d466ff';
+      const inch=DEPTH_INCH[r.d]||r.d+'mm';
+      html+=`<div class="cfg-rack">
+        <div class="cfg-title" style="color:${col}">${label}</div>
+        <div class="cfg-row"><span>${r.u}U × ${r.d}mm / ${inch}</span><span class="v">${r.items.length} eq</span></div>
+      </div>`;
+    }
+    html+=`<div class="cfg-rack" style="border-top:1px solid var(--brd);padding-top:4px;margin-top:2px">
+      <div class="cfg-title" style="color:var(--t)">Power Conditioner (compartido)</div>
+      <div class="cfg-row"><span>${cond.name}</span></div>
+      <div class="cfg-row"><span>Consumo A+B</span><span style="${pwCls}">${pw.totalW}W / ${pw.totalA.toFixed(2)}A</span></div>
+      <div class="cfg-row"><span>Límite</span><span class="v">${maxStr}</span></div>
+    </div>`;
+  }else{
+    for(const rk of ['a','b']){
+      const r=racks[rk];
+      const ps=getPowerStatus(r);
+      const pwCls=ps.over?'color:#ff5c4a;font-weight:600':'color:#ff6680';
+      const condName=ps.cond.name;
+      const maxStr=ps.cond.maxW===Infinity?'∞':`${ps.cond.maxW}W / ${ps.cond.maxA}A`;
+      const label=rk==='a'?'Rack A':'Rack B';
+      const col=rk==='a'?'#22d4bf':'#d466ff';
+      const inch=DEPTH_INCH[r.d]||r.d+'mm';
+      html+=`<div class="cfg-rack">
+        <div class="cfg-title" style="color:${col}">${label}</div>
+        <div class="cfg-row"><span>${r.u}U × ${r.d}mm / ${inch}</span><span class="v">${r.items.length} eq</span></div>
+        <div class="cfg-row"><span>Power Conditioner</span><span class="v">${condName}</span></div>
+        <div class="cfg-row"><span>Consumo</span><span style="${pwCls}">${ps.totalW}W / ${ps.totalA.toFixed(2)}A</span></div>
+        <div class="cfg-row"><span>Límite</span><span class="v">${maxStr}</span></div>
+      </div>`;
+    }
+  }
+  el.innerHTML=html;
+}
+
+function updateStats(){
+  const wtA=racks.a.items.reduce((s,i)=>{const e=gEq(i.id);return s+(e?e.wt:0)},0);
+  const wtB=racks.b.items.reduce((s,i)=>{const e=gEq(i.id);return s+(e?e.wt:0)},0);
+  const pwA=calcRackPower(racks.a),pwB=calcRackPower(racks.b);
+  const totalEq=racks.a.items.length+racks.b.items.length;
+  const totalWt=wtA+wtB;
+  const totalW=pwA.totalW+pwB.totalW;
+  const totalA=pwA.totalA+pwB.totalA;
+  
+  document.getElementById('stats').innerHTML=`
+    <div class="sr"><span>Total A+B</span><span class="v">${totalEq} eq · ${totalWt.toFixed(1)}kg · ${totalW}W · ${totalA.toFixed(2)}A</span></div>`;
+  renderRackCfg();
+  renderSummary();
+}
+
+function renderSummary(){
+  const el=document.getElementById('summary');
+  let rows='';
+  let totalWt=0,totalW=0,totalA=0;
+  const allPlaced=new Set([...racks.a.items.map(i=>i.id),...racks.b.items.map(i=>i.id)]);
+
+  for(const eq of EQ){
+    const inA=racks.a.items.find(i=>i.id===eq.id);
+    const inB=racks.b.items.find(i=>i.id===eq.id);
+    const placed=inA||inB;
+    let locHTML='';
+    if(inA)locHTML=`<span class="loc a">Rack A · ${inA.slot+1}U</span>`;
+    else if(inB)locHTML=`<span class="loc b">Rack B · ${inB.slot+1}U</span>`;
+    else locHTML=`<span class="loc out">— sin colocar —</span>`;
+
+    if(placed){totalWt+=eq.wt;totalW+=eq.watts||0;totalA+=eq.amps||0}
+
+    rows+=`<tr style="opacity:${placed?1:0.4}">
+      <td><span class="dot" style="background:${eq.col}"></span>${eq.name}</td>
+      <td>${eq.w}×${eq.d}×${eq.h}</td>
+      <td>${eq.wt}kg</td>
+      <td>${eq.watts||0}W</td>
+      <td>${(eq.amps||0).toFixed(2)}A</td>
+      <td>${locHTML}</td>
+    </tr>`;
+  }
+
+  const wtA=racks.a.items.reduce((s,i)=>{const e=gEq(i.id);return s+(e?e.wt:0)},0);
+  const wtB=racks.b.items.reduce((s,i)=>{const e=gEq(i.id);return s+(e?e.wt:0)},0);
+  const psA=getPowerStatus(racks.a),psB=getPowerStatus(racks.b);
+  const pwAcls=psA.over?'pwr-warn':'pwr-ok';
+  const pwBcls=psB.over?'pwr-warn':'pwr-ok';
+
+  el.innerHTML=`<h3 style="color:var(--t)">Listado total de equipos
+    <span style="display:flex;gap:4px">
+      <button onclick="exportJSON()">📋 JSON</button>
+      <button onclick="exportHTML()">🌐 HTML</button>
+      <button onclick="exportPNG()">🖼 PNG</button>
+      <button onclick="document.getElementById('import-file').click()">📂 Importar</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+    </span></h3>
+    <div class="sum-total">
+      <span>Rack A: <strong style="color:#22d4bf">${racks.a.items.length} eq · ${wtA.toFixed(1)}kg</strong> <span class="${pwAcls}">${psA.totalW}W/${psA.cond.maxW===Infinity?'∞':psA.cond.maxW+'W'}</span></span>
+      <span>Rack B: <strong style="color:#d466ff">${racks.b.items.length} eq · ${wtB.toFixed(1)}kg</strong> <span class="${pwBcls}">${psB.totalW}W/${psB.cond.maxW===Infinity?'∞':psB.cond.maxW+'W'}</span></span>
+      <span>Total: <strong style="color:var(--t)">${allPlaced.size} eq · ${totalWt.toFixed(1)}kg · ${totalW}W · ${totalA.toFixed(2)}A</strong></span>
+      <span style="color:var(--tm)">Sin colocar: ${EQ.length-allPlaced.size}</span>
+    </div>
+    <table class="sum-table">
+      <tr><th>Equipo</th><th>W×D×H mm</th><th>Peso</th><th>Watts</th><th>Amps</th><th>Ubicación</th></tr>
+      ${rows}
+    </table>`;
+}
+
+
+function getRackExterior(rack){
+  const hMM=Math.round(rack.u*UH);
+  return{w:RW,h:hMM,d:rack.d};
+}
+
+function getRackTotals(rack){
+  let wt=0,watts=0,amps=0;
+  for(const it of rack.items){
+    const eq=gEq(it.id);
+    if(eq){wt+=eq.wt;watts+=eq.watts||0;amps+=eq.amps||0}
+  }
+  return{items:rack.items.length,wt,watts,amps};
+}
+
+function getExportData(){
+  const tA=getRackTotals(racks.a),tB=getRackTotals(racks.b);
+  const eA=getRackExterior(racks.a),eB=getRackExterior(racks.b);
+  return{
+    project:'LA PLAZUELA',version:'v1',exported:new Date().toISOString(),
+    connectorMode:document.getElementById('sel-conn').value,
+    sharedConditioner:sharedCondMode,
+    rackA:{...racks.a,exterior:eA,totals:tA,items:racks.a.items.map(i=>{const e=gEq(i.id);return{...i,name:e?.name,dims:`${e?.w}×${e?.d}×${e?.h}mm`,weight:e?.wt+'kg',watts:e?.watts,amps:e?.amps}})},
+    rackB:{...racks.b,exterior:eB,totals:tB,items:racks.b.items.map(i=>{const e=gEq(i.id);return{...i,name:e?.name,dims:`${e?.w}×${e?.d}×${e?.h}mm`,weight:e?.wt+'kg',watts:e?.watts,amps:e?.amps}})},
+    combined:{items:tA.items+tB.items,wt:tA.wt+tB.wt,watts:tA.watts+tB.watts,amps:tA.amps+tB.amps},
+    _raw:{a:JSON.parse(JSON.stringify(racks.a)),b:JSON.parse(JSON.stringify(racks.b)),active:activeRack,sharedCondMode}
+  };
+}
+
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+const TS=()=>new Date().toISOString().slice(0,10);
+
+function exportJSON(){
+  const data=getExportData();
+  dl(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'LA_PLAZUELA_Rack_'+TS()+'.json');
+}
+
+function exportHTML(){
+  const psA=getPowerStatus(racks.a),psB=getPowerStatus(racks.b);
+  const tA=getRackTotals(racks.a),tB=getRackTotals(racks.b);
+  const eA=getRackExterior(racks.a),eB=getRackExterior(racks.b);
+  const inchA=DEPTH_INCH[racks.a.d]||'?';
+  const inchB=DEPTH_INCH[racks.b.d]||'?';
+  const combined={items:tA.items+tB.items,wt:tA.wt+tB.wt,watts:tA.watts+tB.watts,amps:tA.amps+tB.amps};
+
+  function rackTopSVG(rack,label,col){
+    const sc=0.55;const rD=rack.d;const gap=4;
+    const slotH=Math.round(rD*sc);
+    const lblW=26;// space for labels outside rack
+    const rackW=Math.round(RW*sc);
+    const rackH=slotH*rack.u+gap*(rack.u-1);
+    const svgW=lblW+rackW+10;const svgH=rackH+42;
+    const rackX=lblW+2;const rackY=22;
+    let svg='<svg width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:transparent">';
+    svg+='<text x="'+(svgW/2)+'" y="14" fill="'+col+'" font-size="11" font-family="monospace" text-anchor="middle" font-weight="600">'+label+'</text>';
+    // Rack border (distinct from slots)
+    svg+='<rect x="'+rackX+'" y="'+rackY+'" width="'+rackW+'" height="'+rackH+'" fill="#0a0a0f" stroke="'+col+'44" stroke-width="2" rx="4"/>';
+    // Slots with gaps
+    for(let s=rack.u-1;s>=0;s--){
+      const idx=rack.u-1-s;
+      const y=rackY+idx*(slotH+gap);
+      svg+='<rect x="'+(rackX+2)+'" y="'+(y+2)+'" width="'+(rackW-4)+'" height="'+(slotH-4)+'" fill="#111118" stroke="#2a2a35" stroke-width="0.5" rx="2"/>';
+      // Label outside rack (to the left)
+      svg+='<text x="'+(rackX-4)+'" y="'+(y+slotH/2+3)+'" fill="#555570" font-size="8" font-family="monospace" text-anchor="end">'+(s+1)+'U</text>';
+    }
+    for(const it of rack.items){
+      const eq=gEq(it.id);if(!eq)continue;
+      const rd=rotDims(eq,it.rot||0);
+      const idx=rack.u-1-it.slot;
+      const slotY=rackY+idx*(slotH+gap);
+      const x=rackX+2+Math.round(it.x*sc);const y=slotY+2+Math.round((it.z||0)*sc);
+      const w=Math.round(rd.w*sc);const h=Math.round(rd.d*sc);
+      svg+='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+eq.col+'22" stroke="'+eq.col+'88" stroke-width="1" rx="2"/>';
+      if(w>25)svg+='<text x="'+(x+w/2)+'" y="'+(y+h/2+3)+'" fill="'+eq.col+'" font-size="7" font-family="monospace" text-anchor="middle">'+eq.name.split(' ')[0]+'</text>';
+    }
+    svg+='<text x="'+(svgW/2)+'" y="'+(svgH-3)+'" fill="#444" font-size="7" font-family="monospace" text-anchor="middle">trasera ▲ · ▼ frente</text>';
+    svg+='</svg>';return svg;
+  }
+
+  function rackSideSVG(rack,label,col){
+    const sS=1.2;const tH=rack.u*UH;
+    const pH=Math.round(tH*sS);const pW=Math.round(rack.d*sS*0.4);
+    const svgH=pH+36;const svgW=pW+8;
+    const rackX=4;const rackY=22;
+    let svg='<svg width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:transparent">';
+    svg+='<text x="'+(svgW/2)+'" y="14" fill="'+col+'" font-size="11" font-family="monospace" text-anchor="middle" font-weight="600">'+label+'</text>';
+    // Rack border
+    svg+='<rect x="'+rackX+'" y="'+rackY+'" width="'+pW+'" height="'+pH+'" fill="#0a0a0f" stroke="'+col+'44" stroke-width="2" rx="4"/>';
+    // U division lines with small gaps
+    for(let i=1;i<rack.u;i++){
+      const y=rackY+Math.round((rack.u-i)*UH*sS);
+      svg+='<line x1="'+(rackX+3)+'" y1="'+y+'" x2="'+(rackX+pW-3)+'" y2="'+y+'" stroke="#333" stroke-width="1" stroke-dasharray="3,2"/>';
+    }
+    for(const it of rack.items){
+      const eq=gEq(it.id);if(!eq)continue;
+      const rd=rotDims(eq,it.rot||0);
+      const isCeil=!!it.ceil;
+      let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
+      const tp=rackY+Math.round(pH-(bMM+eq.h)*sS);
+      const lp=rackX+Math.round((rack.d-(it.z||0)-rd.d)*sS*0.4);
+      const wp=Math.round(rd.d*sS*0.4);const hp=Math.max(Math.round(eq.h*sS),3);
+      svg+='<rect x="'+lp+'" y="'+tp+'" width="'+wp+'" height="'+hp+'" fill="'+eq.col+'33" stroke="'+eq.col+'88" stroke-width="1" rx="1"/>';
+    }
+    svg+='<text x="'+(rackX+2)+'" y="'+(svgH-3)+'" fill="#444" font-size="7" font-family="monospace">frente</text>';
+    svg+='<text x="'+(rackX+pW-2)+'" y="'+(svgH-3)+'" fill="#444" font-size="7" font-family="monospace" text-anchor="end">atrás</text>';
+    svg+='</svg>';return svg;
+  }
+
+  function rackRows(rack){
+    let wtS=0,wS=0,aS=0;
+    const rows=rack.items.map(it=>{
+      const eq=gEq(it.id);if(!eq)return'';
+      wtS+=eq.wt;wS+=eq.watts||0;aS+=eq.amps||0;
+      return'<tr><td><span class="dot" style="background:'+eq.col+'"></span>'+eq.name+'</td><td>'+eq.w+'×'+eq.d+'×'+eq.h+'</td><td>'+eq.wt+'kg</td><td>'+( eq.watts||0)+'W</td><td>'+(eq.amps||0).toFixed(2)+'A</td><td>'+(it.slot+1)+'U</td><td>'+(it.ceil?'Techo':'Piso')+'</td></tr>';
+    }).join('');
+    return{rows,wtS,wS,aS};
+  }
+
+  const rA=rackRows(racks.a),rB=rackRows(racks.b);
+  const condMode=sharedCondMode?'Compartido A+B':'Por rack';
+
+  const html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>LA PLAZUELA Rack Report '+TS()+'</title>'+
+'<style>'+
+"@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap');"+
+'*{margin:0;padding:0;box-sizing:border-box}'+
+"body{background:#0b0b0e;color:#c8c8d4;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:0}"+
+".page{max-width:1100px;margin:0 auto;padding:50px 40px}"+
+".header{margin-bottom:32px;border-bottom:1px solid #1e1e28;padding-bottom:20px}"+
+".header h1{font-family:'DM Sans',sans-serif;font-size:32px;font-weight:700;color:#fff;letter-spacing:1px}"+
+'.header .sub{font-size:14px;color:#555570;margin-top:2px}'+
+'.header .date{font-size:10px;color:#333348;margin-top:6px}'+
+'.cards{display:flex;gap:14px;margin:24px 0;flex-wrap:wrap}'+
+'.card{background:#111115;border:1px solid #1e1e28;border-radius:8px;padding:16px 20px;flex:1;min-width:160px}'+
+".card h3{font-size:9px;color:#555570;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;font-weight:600}"+
+'.card .big{font-size:26px;font-weight:700;line-height:1.1}'+
+'.card .med{font-size:15px;font-weight:600;margin-top:3px}'+
+'.card .sm{font-size:10px;color:#555570;margin-top:5px;line-height:1.6}'+
+'.pwr{color:#ff6680}.pwr-w{color:#ff5c4a;font-weight:700}'+
+'.rack-a{color:#22d4bf}.rack-b{color:#d466ff}'+
+".sect{margin:32px 0 16px}"+
+".sect h2{font-family:'DM Sans',sans-serif;font-size:20px;font-weight:600;color:#fff;margin-bottom:3px}"+
+'.sect .dim{font-size:11px;color:#555570;margin-bottom:14px}'+
+'.views{display:flex;gap:16px;margin:12px 0 20px;flex-wrap:wrap;align-items:flex-start}'+
+'table{width:100%;border-collapse:collapse;margin-bottom:10px}'+
+"th{text-align:left;color:#444458;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;padding:5px 8px;border-bottom:1px solid #1e1e28;font-weight:600}"+
+'td{padding:4px 8px;border-bottom:1px solid #13131a;font-size:11px}'+
+'tr:hover td{background:#111115}'+
+'.dot{display:inline-block;width:6px;height:6px;border-radius:2px;margin-right:5px;vertical-align:middle}'+
+'.trow td{border-top:2px solid #1e1e28;font-weight:600;color:#fff;padding-top:7px}'+
+'.footer{margin-top:44px;padding-top:10px;border-top:1px solid #19191f;color:#2a2a35;font-size:9px;display:flex;justify-content:space-between}'+
+'@media print{body{background:#fff;color:#222}.card{border-color:#ddd;background:#f8f8f8}.header h1,.sect h2{color:#111}th{color:#666}td{border-color:#eee}.footer{color:#aaa}}'+
+'</style></head><body><div class="page">'+
+
+'<div class="header">'+
+'<h1>LA PLAZUELA</h1>'+
+'<div class="sub">Rack Playback System — Technical Report</div>'+
+'<div class="date">'+new Date().toLocaleString('es-ES',{weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})+' · Rack Designer v1</div>'+
+'</div>'+
+
+'<div class="cards">'+
+'<div class="card"><h3>Rack A</h3><div class="big rack-a">'+tA.items+' eq</div><div class="sm">'+racks.a.u+'U · '+eA.w+'×'+eA.h+'×'+eA.d+'mm ('+inchA+' prof.)<br>'+tA.wt.toFixed(1)+'kg · <span class="pwr">'+tA.watts+'W · '+tA.amps.toFixed(2)+'A</span></div></div>'+
+'<div class="card"><h3>Rack B</h3><div class="big rack-b">'+tB.items+' eq</div><div class="sm">'+racks.b.u+'U · '+eB.w+'×'+eB.h+'×'+eB.d+'mm ('+inchB+' prof.)<br>'+tB.wt.toFixed(1)+'kg · <span class="pwr">'+tB.watts+'W · '+tB.amps.toFixed(2)+'A</span></div></div>'+
+'<div class="card"><h3>Sistema</h3><div class="big">'+combined.items+' <span style="font-size:13px;color:#555570">/ '+EQ.length+'</span></div><div class="sm">'+combined.wt.toFixed(1)+'kg · <span class="pwr">'+combined.watts+'W · '+combined.amps.toFixed(2)+'A</span><br>Sin colocar: '+(EQ.length-combined.items)+'</div></div>'+
+'<div class="card"><h3>Power Conditioner</h3><div class="med">'+(sharedCondMode?psA.cond.name+' (compartido)':psA.cond.name+' / '+psB.cond.name)+'</div><div class="sm">Modo: '+condMode+'<br>'+
+(sharedCondMode
+  ?'Total: <span class="'+(psA.over?'pwr-w':'pwr')+'">'+combined.watts+'W / '+combined.amps.toFixed(2)+'A</span> · Lím: '+(psA.cond.maxW===Infinity?'∞':psA.cond.maxW+'W')
+  :'A: <span class="'+(psA.over?'pwr-w':'pwr')+'">'+psA.totalW+'W/'+(psA.cond.maxW===Infinity?'∞':psA.cond.maxW+'W')+'</span> · B: <span class="'+(psB.over?'pwr-w':'pwr')+'">'+psB.totalW+'W/'+(psB.cond.maxW===Infinity?'∞':psB.cond.maxW+'W')+'</span>')+
+'</div></div></div>'+
+
+'<div class="sect"><h2 style="color:#22d4bf">Rack A</h2>'+
+'<div class="dim">'+racks.a.u+'U · '+eA.w+' × '+eA.h+' × '+eA.d+' mm · '+inchA+' profundidad · '+psA.cond.name+'</div>'+
+'<div class="views">'+rackTopSVG(racks.a,'Vista Superior','#22d4bf')+rackSideSVG(racks.a,'Lateral','#22d4bf')+'</div>'+
+'<table><tr><th>Equipo</th><th>W×D×H mm</th><th>Peso</th><th>Watts</th><th>Amps</th><th>Slot</th><th>Ancla</th></tr>'+rA.rows+
+'<tr class="trow"><td>Total Rack A</td><td></td><td>'+rA.wtS.toFixed(1)+'kg</td><td>'+rA.wS+'W</td><td>'+rA.aS.toFixed(2)+'A</td><td colspan="2">'+tA.items+' eq</td></tr></table></div>'+
+
+'<div class="sect"><h2 style="color:#d466ff">Rack B</h2>'+
+'<div class="dim">'+racks.b.u+'U · '+eB.w+' × '+eB.h+' × '+eB.d+' mm · '+inchB+' profundidad · '+psB.cond.name+'</div>'+
+'<div class="views">'+rackTopSVG(racks.b,'Vista Superior','#d466ff')+rackSideSVG(racks.b,'Lateral','#d466ff')+'</div>'+
+'<table><tr><th>Equipo</th><th>W×D×H mm</th><th>Peso</th><th>Watts</th><th>Amps</th><th>Slot</th><th>Ancla</th></tr>'+rB.rows+
+'<tr class="trow"><td>Total Rack B</td><td></td><td>'+rB.wtS.toFixed(1)+'kg</td><td>'+rB.wS+'W</td><td>'+rB.aS.toFixed(2)+'A</td><td colspan="2">'+tB.items+' eq</td></tr></table></div>'+
+
+(EQ.filter(e=>!isUsed(e.id)).length?
+'<div class="sect"><h2 style="color:#555570">Sin colocar</h2><table><tr><th>Equipo</th><th>W×D×H</th><th>Peso</th><th>W</th><th>A</th><th colspan="2"></th></tr>'+
+EQ.filter(e=>!isUsed(e.id)).map(eq=>'<tr style="opacity:0.35"><td>'+eq.name+'</td><td>'+eq.w+'×'+eq.d+'×'+eq.h+'</td><td>'+eq.wt+'kg</td><td>'+(eq.watts||0)+'W</td><td>'+(eq.amps||0).toFixed(2)+'A</td><td colspan="2">—</td></tr>').join('')+
+'</table></div>':'')+
+
+'<div class="footer"><span>LA PLAZUELA · Rack Designer v1</span><span>'+new Date().toLocaleDateString('es-ES')+'</span></div>'+
+'</div></body></html>';
+
+  dl(new Blob([html],{type:'text/html'}),'LA_PLAZUELA_Report_'+TS()+'.html');
+}
+
+function exportPNG(){
+  const ws=document.getElementById('workspace');
+  const msg=document.getElementById('msg');
+  msg.className='msg info';msg.textContent='Generando PNG...';
+
+  // Use html2canvas-like approach via SVG foreignObject
+  const clone=ws.cloneNode(true);
+  clone.style.position='absolute';clone.style.left='-9999px';clone.style.background='#0b0b0e';
+  clone.style.padding='20px';clone.style.width=ws.scrollWidth+'px';clone.style.height=ws.scrollHeight+'px';
+  document.body.appendChild(clone);
+
+  // Gather all computed styles inline
+  const allEls=clone.querySelectorAll('*');
+  allEls.forEach(el=>{
+    const cs=window.getComputedStyle(el);
+    el.style.cssText+=`;color:${cs.color};background:${cs.background};border:${cs.border};font-size:${cs.fontSize};font-family:${cs.fontFamily};font-weight:${cs.fontWeight}`;
+  });
+
+  const svgData=`<svg xmlns="http://www.w3.org/2000/svg" width="${ws.scrollWidth+40}" height="${ws.scrollHeight+40}">
+    <rect width="100%" height="100%" fill="#0b0b0e"/>
+    <foreignObject width="100%" height="100%">
+      <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:monospace;color:#e8e8f0;padding:20px">
+        ${clone.innerHTML}
+      </div>
+    </foreignObject>
+  </svg>`;
+
+  document.body.removeChild(clone);
+
+  const canvas=document.createElement('canvas');
+  const ctx=canvas.getContext('2d');
+  const img=new Image();
+  const svgBlob=new Blob([svgData],{type:'image/svg+xml;charset=utf-8'});
+  const url=URL.createObjectURL(svgBlob);
+
+  img.onload=()=>{
+    canvas.width=img.width;canvas.height=img.height;
+    ctx.fillStyle='#0b0b0e';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0);
+    canvas.toBlob(blob=>{
+      dl(blob,`LA_PLAZUELA_Rack_${TS()}.png`);
+      URL.revokeObjectURL(url);
+      msg.className='msg ok';msg.textContent='✓ PNG exportado';
+    },'image/png');
+  };
+  img.onerror=()=>{
+    // Fallback: just capture the workspace via basic screenshot
+    URL.revokeObjectURL(url);
+    msg.className='msg warn';msg.textContent='PNG fallback — usa captura de pantalla';
+  };
+  img.src=url;
+}
+
+function importJSON(evt){
+  const file=evt.target.files[0];
+  if(!file)return;
+  const msg=document.getElementById('msg');
+  msg.className='msg info';msg.textContent='Importando...';
+
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      // Support both formats: _raw (our export) or direct a/b structure (preset-like)
+      let imported=null;
+      if(data._raw){
+        imported=data._raw;
+      }else if(data.rackA&&data.rackA.items){
+        // Try to reconstruct from export format
+        imported={a:data.rackA,b:data.rackB,active:'a'};
+      }else if(data.a&&data.b){
+        imported=data;
+      }
+
+      if(!imported||!imported.a||!imported.b){
+        msg.className='msg warn';msg.textContent='Formato no reconocido';return;
+      }
+
+      racks.a=imported.a;racks.b=imported.b;
+      if(!racks.a.conditioner)racks.a.conditioner='none';
+      if(!racks.b.conditioner)racks.b.conditioner='none';
+      // Restore shared cond mode if present
+      if(imported.sharedCondMode!==undefined){
+        sharedCondMode=!!imported.sharedCondMode;
+        document.getElementById('sel-cond-mode').value=sharedCondMode?'shared':'per-rack';
+      }
+      // Normalize items
+      [racks.a,racks.b].forEach(r=>{
+        if(!r.items)r.items=[];
+        r.items.forEach(i=>{
+          if(!i.rot)i.rot=0;
+          if(i.showConn===undefined)i.showConn=true;
+          if(i.ceil===undefined)i.ceil=false;
+        });
+        // Filter out items whose IDs don't match any equipment
+        r.items=r.items.filter(i=>gEq(i.id));
+      });
+
+      switchRack(imported.active||'a');
+      msg.className='msg ok';msg.textContent=`✓ Importado: A=${racks.a.items.length} B=${racks.b.items.length}`;
+    }catch(err){
+      msg.className='msg warn';msg.textContent='Error al leer JSON';
+    }
+  };
+  reader.readAsText(file);
+  evt.target.value='';
+}
+
+// ===== DRAG RESIZE SUMMARY =====
+{
+  const dg=document.getElementById('summary-drag');
+  const wrap=document.getElementById('summary-wrap');
+  let resizing=false,startY=0,startH=0;
+  dg.addEventListener('mousedown',e=>{resizing=true;startY=e.clientY;startH=wrap.offsetHeight;e.preventDefault()});
+  document.addEventListener('mousemove',e=>{if(!resizing)return;const dy=startY-e.clientY;wrap.style.height=Math.max(40,Math.min(500,startH+dy))+'px'});
+  document.addEventListener('mouseup',()=>resizing=false);
+}
+
+// ===== SIDEBAR WIDTH RESIZE =====
+{
+  const handle=document.getElementById('sidebar-resize');
+  const sb=document.getElementById('sidebar');
+  let dragging=false,startX=0,startW=0;
+  handle.addEventListener('mousedown',e=>{dragging=true;startX=e.clientX;startW=sb.offsetWidth;e.preventDefault()});
+  document.addEventListener('mousemove',e=>{if(!dragging)return;const dx=e.clientX-startX;sb.style.width=Math.max(220,Math.min(500,startW+dx))+'px'});
+  document.addEventListener('mouseup',()=>dragging=false);
+}
+
+// ===== SIDEBAR SECTION DRAG RESIZE =====
+document.querySelectorAll('.sb-drag').forEach(handle=>{
+  let dragging=false,startY=0,aboveH=0,belowH=0;
+  const pair=handle.dataset.resize;if(!pair)return;
+  const[aboveId,belowId]=pair.split(',');
+  
+  handle.addEventListener('mousedown',e=>{
+    const aboveEl=document.getElementById('wrap-'+aboveId);
+    const belowEl=document.getElementById('wrap-'+belowId);
+    if(!aboveEl||!belowEl)return;
+    dragging=true;startY=e.clientY;
+    aboveH=aboveEl.offsetHeight;belowH=belowEl.offsetHeight;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    const dy=e.clientY-startY;
+    const aboveEl=document.getElementById('wrap-'+aboveId);
+    const belowEl=document.getElementById('wrap-'+belowId);
+    if(!aboveEl||!belowEl)return;
+    const newAbove=Math.max(30,aboveH+dy);
+    const newBelow=Math.max(30,belowH-dy);
+    aboveEl.style.height=newAbove+'px';aboveEl.style.flex='none';
+    belowEl.style.height=newBelow+'px';belowEl.style.flex='none';
+  });
+  document.addEventListener('mouseup',()=>dragging=false);
+});
+
+rebuild();
+
+// ===== SUPABASE =====
+const SB_URL='https://ywhbfohkfxsrqrgirtlp.supabase.co';
+const SB_KEY='sb_publishable_unB1TKjRzLvoKxryXERBVg_MhF-QNpg';
+const SB_HDR={'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
+async function sbFetch(p,o={}){const r=await fetch(SB_URL+'/rest/v1/'+p,{headers:SB_HDR,...o});if(!r.ok)throw new Error(r.statusText);const t=await r.text();return t?JSON.parse(t):null}
+
+// ===== CONFIRM DIALOG =====
+function showConfirm(msg,onYes,danger=false){
+  const ov=document.createElement('div');ov.className='confirm-overlay';
+  ov.innerHTML=`<div class="confirm-box">
+    <p>${msg}</p>
+    <div class="cb-btns">
+      <button class="cb-btn" id="cf-no">Cancelar</button>
+      <button class="cb-btn ${danger?'danger':''}" id="cf-yes">${danger?'Eliminar':'Confirmar'}</button>
+    </div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#cf-no').onclick=()=>ov.remove();
+  ov.querySelector('#cf-yes').onclick=()=>{ov.remove();onYes()};
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});
+}
+
+// ===== PRESETS (with order field) =====
+let presetCache=[];
+
+async function savePreset(){
+  const n=document.getElementById('pname').value.trim(),m=document.getElementById('pmsg');
+  if(!n){m.className='pmsg err';m.textContent='Nombre vacío';return}
+  m.className='pmsg ld';m.textContent='Guardando...';
+  try{
+    const data={name:n,rack_u:cur().u,rack_depth:cur().d,connector_mm:0,
+      items:JSON.stringify({a:racks.a,b:racks.b,active:activeRack}),
+      updated_at:new Date().toISOString()};
+    await sbFetch('rack_presets',{method:'POST',body:JSON.stringify(data)});
+    m.className='pmsg ok';m.textContent='✓ '+n;
+    document.getElementById('pname').value='';loadPresets();
+  }catch(e){m.className='pmsg err';m.textContent='Error: '+e.message}
+}
+
+async function loadPresets(){
+  const el=document.getElementById('plist');
+  try{
+    const d=await sbFetch('rack_presets?select=*&order=updated_at.desc&limit=30');
+    if(!d||!d.length){presetCache=[];el.innerHTML='<div style="color:var(--tm);font-size:10px;padding:3px">Sin presets</div>';return}
+    presetCache=d;
+    renderPresetList();
+  }catch(e){el.innerHTML='<div style="color:#ff5c4a;font-size:10px">Sin conexión</div>'}
+}
+
+function renderPresetList(){
+  const el=document.getElementById('plist');
+  el.innerHTML=presetCache.map((p,i)=>{
+    let info='';
+    try{const pd=typeof p.items==='string'?JSON.parse(p.items):p.items;
+      if(pd.a)info=`A:${pd.a.items.length} B:${pd.b.items.length}`;
+      else info=`${pd.length||0}eq`;
+    }catch(e){info='?'}
+    return`<div class="pe" data-pid="${p.id}" data-idx="${i}" draggable="true"
+      ondragstart="presetDragStart(event)" ondragover="presetDragOver(event)" ondragend="presetDragEnd(event)" ondrop="presetDrop(event)"
+      onclick="applyPreset('${p.id}')">
+      <span class="pe-drag" title="Arrastrar">⠿</span>
+      <span class="pen" id="pn-${p.id}">${p.name}</span>
+      <span class="pei">${info}</span>
+      <span class="pe-acts">
+        <button class="pa" onclick="event.stopPropagation();renamePreset('${p.id}')" title="Renombrar">✏</button>
+        <button class="pa" onclick="event.stopPropagation();updatePreset('${p.id}')" title="Actualizar">🔄</button>
+        <button class="pa del" onclick="event.stopPropagation();delPreset('${p.id}','${p.name.replace(/'/g,"\\'")}')" title="Eliminar">✕</button>
+      </span>
+    </div>`}).join('');
+}
+
+// ===== PRESET DRAG REORDER =====
+let dragPresetIdx=null;
+
+function presetDragStart(e){
+  const el=e.target.closest('.pe');
+  dragPresetIdx=+el.dataset.idx;
+  el.classList.add('pe-dragging');
+  e.dataTransfer.effectAllowed='move';
+}
+function presetDragOver(e){
+  e.preventDefault();e.dataTransfer.dropEffect='move';
+  const el=e.target.closest('.pe');
+  document.querySelectorAll('.pe').forEach(p=>p.classList.remove('pe-drop-target'));
+  if(el)el.classList.add('pe-drop-target');
+}
+function presetDragEnd(e){
+  document.querySelectorAll('.pe').forEach(p=>{p.classList.remove('pe-dragging','pe-drop-target')});
+  dragPresetIdx=null;
+}
+async function presetDrop(e){
+  e.preventDefault();
+  const el=e.target.closest('.pe');
+  if(!el||dragPresetIdx===null)return;
+  const dropIdx=+el.dataset.idx;
+  if(dragPresetIdx===dropIdx)return;
+
+  // Reorder in cache
+  const moved=presetCache.splice(dragPresetIdx,1)[0];
+  presetCache.splice(dropIdx,0,moved);
+  renderPresetList();
+
+  // Persist order via updated_at timestamps (newest = first loaded)
+  const m=document.getElementById('pmsg');
+  m.className='pmsg ld';m.textContent='Reordenando...';
+  try{
+    const now=Date.now();
+    for(let i=0;i<presetCache.length;i++){
+      // Give each preset a timestamp so that order=updated_at.desc matches visual order
+      const ts=new Date(now - i*1000).toISOString();
+      await sbFetch('rack_presets?id=eq.'+presetCache[i].id,{method:'PATCH',body:JSON.stringify({updated_at:ts})});
+    }
+    m.className='pmsg ok';m.textContent='✓ Orden guardado';
+  }catch(e){m.className='pmsg err';m.textContent='Error al reordenar'}
+  dragPresetIdx=null;
+}
+
+// ===== PRESET ACTIONS =====
+function renamePreset(id){
+  const span=document.getElementById('pn-'+id);
+  const p=presetCache.find(x=>x.id==id);
+  if(!p)return;
+  const oldName=p.name;
+  span.innerHTML=`<input type="text" value="${oldName}" onkeydown="if(event.key==='Enter')commitRename('${id}',this.value);if(event.key==='Escape'){this.parentNode.textContent='${oldName.replace(/'/g,"\\'")}'}" onblur="commitRename('${id}',this.value)">`;
+  const inp=span.querySelector('input');
+  inp.focus();inp.select();
+}
+
+async function commitRename(id,newName){
+  newName=newName.trim();
+  const p=presetCache.find(x=>x.id==id);
+  if(!p)return;
+  if(!newName||newName===p.name){
+    renderPresetList();return;
+  }
+  const m=document.getElementById('pmsg');
+  m.className='pmsg ld';m.textContent='Renombrando...';
+  try{
+    await sbFetch('rack_presets?id=eq.'+id,{method:'PATCH',body:JSON.stringify({name:newName,updated_at:new Date().toISOString()})});
+    p.name=newName;
+    m.className='pmsg ok';m.textContent='✓ Renombrado';
+    renderPresetList();
+  }catch(e){m.className='pmsg err';m.textContent='Error';renderPresetList()}
+}
+
+function updatePreset(id){
+  const p=presetCache.find(x=>x.id==id);
+  if(!p)return;
+  showConfirm(`¿Actualizar <strong>${p.name}</strong> con la configuración actual?`,async()=>{
+    const m=document.getElementById('pmsg');
+    m.className='pmsg ld';m.textContent='Actualizando...';
+    try{
+      const data={
+        rack_u:cur().u,rack_depth:cur().d,connector_mm:0,
+        items:JSON.stringify({a:racks.a,b:racks.b,active:activeRack}),
+        updated_at:new Date().toISOString()};
+      await sbFetch('rack_presets?id=eq.'+id,{method:'PATCH',body:JSON.stringify(data)});
+      m.className='pmsg ok';m.textContent='✓ '+p.name+' actualizado';
+      loadPresets();
+    }catch(e){m.className='pmsg err';m.textContent='Error'}
+  });
+}
+
+function delPreset(id,name){
+  showConfirm(`¿Eliminar <strong>${name}</strong>?<br>Esta acción no se puede deshacer.`,async()=>{
+    try{
+      await sbFetch('rack_presets?id=eq.'+id,{method:'DELETE'});
+      loadPresets();
+      const m=document.getElementById('pmsg');m.textContent='Eliminado';m.className='pmsg ok';
+    }catch(e){}
+  },true);
+}
+
+async function applyPreset(id){
+  const m=document.getElementById('pmsg');m.className='pmsg ld';m.textContent='...';
+  try{
+    const d=await sbFetch('rack_presets?id=eq.'+id+'&select=*');
+    if(!d||!d.length)throw new Error('');
+    const p=d[0];
+    const pd=typeof p.items==='string'?JSON.parse(p.items):p.items;
+    if(pd.a&&pd.b){
+      racks.a=pd.a;racks.b=pd.b;
+      if(!racks.a.conditioner)racks.a.conditioner='none';
+      if(!racks.b.conditioner)racks.b.conditioner='none';
+      racks.a.items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false});
+      racks.b.items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false});
+      switchRack(pd.active||'a');
+    }else{
+      cur().u=p.rack_u;cur().d=p.rack_depth;
+      cur().items=Array.isArray(pd)?pd:[];
+      cur().items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true});
+      document.getElementById('sel-u').value=cur().u;
+      document.getElementById('sel-d').value=cur().d;
+      rebuild();
+    }
+    // Highlight active preset
+    document.querySelectorAll('.pe').forEach(p=>p.classList.remove('pe-active'));
+    const el=document.querySelector(`.pe[data-pid="${id}"]`);
+    if(el)el.classList.add('pe-active');
+    m.className='pmsg ok';m.textContent='✓ '+p.name;
+  }catch(e){m.className='pmsg err';m.textContent='Error'}
+}
+
+loadPresets();
+</script>
+</body>
+</html>
