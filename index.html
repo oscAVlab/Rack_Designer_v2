@@ -310,12 +310,14 @@ body{height:auto;overflow:auto}
 </div>
 </div>
 <script>
+window.onerror=function(msg,url,line,col,err){document.body.innerHTML='<pre style="color:red;padding:20px;font-size:14px">ERROR line '+line+': '+msg+'\n'+(err?err.stack:'')+'</pre>';return true};
+
 // ===== POWER CONDITIONERS (max W / max A @ 230V) =====
 const CONDITIONERS={
-  'none':{name:'Sin acondicionador',maxW:Infinity,maxA:Infinity},
-  'furman':{name:'Furman M-10x E',maxW:2300,maxA:10},
-  'furman210':{name:'Furman AC-210 A E',maxW:2300,maxA:10},
-  'pgp':{name:'BLA PG-P',maxW:1380,maxA:6}
+‘none’:{name:‘Sin acondicionador’,maxW:Infinity,maxA:Infinity},
+‘furman’:{name:‘Furman M-10x E’,maxW:2300,maxA:10},
+‘furman210’:{name:‘Furman AC-210 A E’,maxW:2300,maxA:10},
+‘pgp’:{name:‘BLA PG-P’,maxW:1380,maxA:6}
 };
 
 const EQ=[
