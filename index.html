@@ -516,17 +516,18 @@ function renderWorkspace(){
   const rD=r.d;
   const col=rackColor(activeRack);
 
-  // ===== RESPONSIVE SCALE =====
-  // Compute scale to fit within available workspace width
-  // Top view needs: labelW(28px) + RW*S + borders(~8px) + padding
-  // We want this to fit within the workspace width
+  // ===== RESPONSIVE SCALE (top view only, only when needed) =====
   const wsWidth=ws.clientWidth||ws.offsetWidth||600;
-  const labelW=32; // slot label + gap
-  const pad=32; // padding + borders
-  const maxFitS=(wsWidth-labelW-pad)/RW; // scale that makes top view fit exactly
-  const S=Math.min(SC,maxFitS); // cap at 0.95, shrink on small screens
-  curScale=S; // store for interaction handlers
-  const tH=r.u*UH; // total height in mm
+  const labelW=32;
+  const pad=32;
+  const neededW=labelW+pad+Math.round(RW*SC); // what top view needs at full scale
+  const S=(wsWidth<neededW)?((wsWidth-labelW-pad)/RW):SC; // shrink only if doesn't fit
+  curScale=S;
+  const tH=r.u*UH;
+
+  // Side/front use fixed scale with height exaggeration for readability
+  const FS=SC; // fixed horizontal scale
+  const vX=2.0; // vertical exaggeration (height is tiny vs width at true scale)
 
   // Carry-on reference dims in mm (IATA: 560×355×230mm = 22×14×9")
   const CARRYON={w:560,d:355,h:230};
@@ -541,14 +542,18 @@ function renderWorkspace(){
   }
   topHTML+=`</div><div class="rack-lbl" style="margin-top:14px">▼ frente</div></div>`;
 
-  // Side view: D (horizontal) × H (vertical) — FIXED scale, true proportions
-  const FS=SC; // fixed scale for side/front views (never responsive-shrunk)
-  const sideH=Math.round(tH*FS);
+  // Side view: D (horizontal) × H (vertical, exaggerated for readability)
+  const sideH=Math.round(tH*FS*vX);
   const sideW=Math.round(rD*FS);
+  // Compute top padding to align side/front rack tops with top view rack top
+  // Top view has: view-label(~24px) + rack-lbl(~30px) = ~54px before rack box starts
+  // Side/front has: view-label(~24px) before rack starts — diff is the rack-lbl height
+  const alignPad=30; // approx height of "▲ trasera" label
   let sideHTML=`<div class="view-col"><div class="view-label">Vista lateral</div>
+    <div style="height:${alignPad}px"></div>
     <div class="side-rack" id="side-rack" style="width:${sideW}px;height:${sideH}px;border-color:${col}44">`;
   for(let i=1;i<r.u;i++){
-    sideHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*FS)}px"></div>`;
+    sideHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*FS*vX)}px"></div>`;
   }
   sideHTML+=`<div class="side-lbl" style="left:2px;bottom:-16px">frente</div>`;
   sideHTML+=`<div class="side-lbl" style="right:2px;bottom:-16px">atrás</div>`;
@@ -556,11 +561,11 @@ function renderWorkspace(){
     const eq=gEq(it.id);if(!eq)continue;
     const isCeil=!!it.ceil;
     let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
-    const tp=Math.round(sideH-(bMM+eq.h)*FS);
+    const tp=Math.round(sideH-(bMM+eq.h)*FS*vX);
     const rd=rotDims(eq,it.rot||0);
     const lp=Math.round((rD-(it.z||0)-rd.d)*FS);
     const wp=Math.round(rd.d*FS);
-    const hp=Math.max(Math.round(eq.h*FS),4);
+    const hp=Math.max(Math.round(eq.h*FS*vX),6);
     let extraStyle='';
     if(eq.shape){
       const rot=it.rot||0;const connSide=(2+rot/90)%4;
@@ -570,30 +575,31 @@ function renderWorkspace(){
         else if(eq.shape==='trap-hotshot'){extraStyle=fl?'clip-path:polygon(0% 0%,55% 0%,55% 50%,100% 50%,100% 100%,0% 100%);':'clip-path:polygon(0% 50%,45% 50%,45% 0%,100% 0%,100% 100%,0% 100%);'}
       }
     }
-    sideHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col};${extraStyle}"><span>${hp>=10?eq.name.split(' ')[0]:''}</span></div>`;
+    sideHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col};${extraStyle}"><span>${eq.name.split(' ')[0]}</span></div>`;
   }
   sideHTML+=`</div>
     <div style="font-size:10px;color:var(--tm);margin-top:8px;text-align:center">
       ${rD}mm × ${Math.round(tH)}mm
     </div></div>`;
 
-  // Front view: W (horizontal) × H (vertical) — FIXED scale
+  // Front view: W (horizontal) × H (vertical, same exaggeration as side)
   const frontW=Math.round(RW*FS);
   let frontHTML=`<div class="view-col"><div class="view-label">Vista frontal</div>
+    <div style="height:${alignPad}px"></div>
     <div class="side-rack" style="width:${frontW}px;height:${sideH}px;border-color:${col}44">`;
   for(let i=1;i<r.u;i++){
-    frontHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*FS)}px"></div>`;
+    frontHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*FS*vX)}px"></div>`;
   }
   for(const it of r.items){
     const eq=gEq(it.id);if(!eq)continue;
     const rd=rotDims(eq,it.rot||0);
     const isCeil=!!it.ceil;
     let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
-    const tp=Math.round(sideH-(bMM+eq.h)*FS);
+    const tp=Math.round(sideH-(bMM+eq.h)*FS*vX);
     const lp=Math.round(it.x*FS);
     const wp=Math.round(rd.w*FS);
-    const hp=Math.max(Math.round(eq.h*FS),4);
-    frontHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col}"><span>${hp>=10?eq.name.split(' ')[0]:''}</span></div>`;
+    const hp=Math.max(Math.round(eq.h*FS*vX),6);
+    frontHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col}"><span>${eq.name.split(' ')[0]}</span></div>`;
   }
   frontHTML+=`</div>
     <div style="font-size:10px;color:var(--tm);margin-top:8px;text-align:center">
@@ -1011,15 +1017,15 @@ function exportHTML(){
   }
 
   function rackSideSVG(rack,label,col){
-    const sS=0.55;const tH=rack.u*UH;
-    const pH=Math.round(tH*sS);const pW=Math.round(rack.d*sS);
+    const sS=0.55;const vXe=2.0;const tH=rack.u*UH;
+    const pH=Math.round(tH*sS*vXe);const pW=Math.round(rack.d*sS);
     const svgH=pH+36;const svgW=pW+8;
     const rackX=4;const rackY=22;
     let svg='<svg width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:transparent">';
     svg+='<text x="'+(svgW/2)+'" y="14" fill="'+col+'" font-size="11" font-family="monospace" text-anchor="middle" font-weight="600">'+label+'</text>';
     svg+='<rect x="'+rackX+'" y="'+rackY+'" width="'+pW+'" height="'+pH+'" fill="#0a0a0f" stroke="'+col+'44" stroke-width="2" rx="4"/>';
     for(let i=1;i<rack.u;i++){
-      const y=rackY+Math.round((rack.u-i)*UH*sS);
+      const y=rackY+Math.round((rack.u-i)*UH*sS*vXe);
       svg+='<line x1="'+(rackX+3)+'" y1="'+y+'" x2="'+(rackX+pW-3)+'" y2="'+y+'" stroke="#333" stroke-width="1" stroke-dasharray="3,2"/>';
     }
     for(const it of rack.items){
@@ -1027,9 +1033,9 @@ function exportHTML(){
       const rd=rotDims(eq,it.rot||0);
       const isCeil=!!it.ceil;
       let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
-      const tp=rackY+Math.round(pH-(bMM+eq.h)*sS);
+      const tp=rackY+Math.round(pH-(bMM+eq.h)*sS*vXe);
       const lp=rackX+Math.round((rack.d-(it.z||0)-rd.d)*sS);
-      const wp=Math.round(rd.d*sS);const hp=Math.max(Math.round(eq.h*sS),3);
+      const wp=Math.round(rd.d*sS);const hp=Math.max(Math.round(eq.h*sS*vXe),3);
       let clipAttr='';
       if(eq.shape){
         const rot=it.rot||0;const connSide=(2+rot/90)%4;
@@ -1047,15 +1053,15 @@ function exportHTML(){
   }
 
   function rackFrontSVG(rack,label,col){
-    const sS=0.55;const tH=rack.u*UH;
-    const pH=Math.round(tH*sS);const pW=Math.round(RW*sS);
+    const sS=0.55;const vXe=2.0;const tH=rack.u*UH;
+    const pH=Math.round(tH*sS*vXe);const pW=Math.round(RW*sS);
     const svgH=pH+36;const svgW=pW+8;
     const rackX=4;const rackY=22;
     let svg='<svg width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:transparent">';
     svg+='<text x="'+(svgW/2)+'" y="14" fill="'+col+'" font-size="11" font-family="monospace" text-anchor="middle" font-weight="600">'+label+'</text>';
     svg+='<rect x="'+rackX+'" y="'+rackY+'" width="'+pW+'" height="'+pH+'" fill="#0a0a0f" stroke="'+col+'44" stroke-width="2" rx="4"/>';
     for(let i=1;i<rack.u;i++){
-      const y=rackY+Math.round((rack.u-i)*UH*sS);
+      const y=rackY+Math.round((rack.u-i)*UH*sS*vXe);
       svg+='<line x1="'+(rackX+3)+'" y1="'+y+'" x2="'+(rackX+pW-3)+'" y2="'+y+'" stroke="#333" stroke-width="1" stroke-dasharray="3,2"/>';
     }
     for(const it of rack.items){
@@ -1063,9 +1069,9 @@ function exportHTML(){
       const rd=rotDims(eq,it.rot||0);
       const isCeil=!!it.ceil;
       let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
-      const tp=rackY+Math.round(pH-(bMM+eq.h)*sS);
+      const tp=rackY+Math.round(pH-(bMM+eq.h)*sS*vXe);
       const lp=rackX+Math.round(it.x*sS);
-      const wp=Math.round(rd.w*sS);const hp=Math.max(Math.round(eq.h*sS),3);
+      const wp=Math.round(rd.w*sS);const hp=Math.max(Math.round(eq.h*sS*vXe),3);
       svg+='<rect x="'+lp+'" y="'+tp+'" width="'+wp+'" height="'+hp+'" fill="'+eq.col+'33" stroke="'+eq.col+'88" stroke-width="1" rx="1"/>';
     }
     svg+='</svg>';return svg;
