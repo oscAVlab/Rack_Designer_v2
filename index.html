@@ -111,7 +111,7 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
 .rack-tab.active{background:var(--bg);color:var(--t);border-color:var(--brdh)}
 .rack-tab .rtag{font-size:10px;color:var(--tm);margin-left:5px}
 
-.workspace{flex:1;display:flex;overflow:auto;padding:12px;gap:110px;align-items:flex-start;justify-content:center;flex-wrap:wrap;min-height:0}
+.workspace{flex:1;display:flex;overflow:auto;padding:12px;gap:20px;align-items:flex-start;justify-content:center;flex-wrap:wrap;min-height:0}
 
 .view-col{display:flex;flex-direction:column;align-items:center}
 .view-label{font-size:12px;color:var(--tm);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;font-weight:500}
@@ -137,7 +137,7 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
 .pi:hover .pb{opacity:1}
 .pi .pbtn{width:18px;height:18px;border-radius:3px;border:none;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);color:#fff}
 .pi .pbtn:hover{background:rgba(0,0,0,.95)}
-.czone{position:absolute;pointer-events:none;border:1px dashed;opacity:0.5;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7px;overflow:hidden;line-height:1}
+.czone{position:absolute;pointer-events:none;border:1px dashed;opacity:var(--conn-opacity,0.5);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7px;overflow:hidden;line-height:1}
 .czone.audio{border-color:#ff9944;background:rgba(255,153,68,0.08);color:#ff9944}
 .czone.data{border-color:#44aaff;background:rgba(68,170,255,0.08);color:#44aaff}
 .czone.power{border-color:#ff4466;background:rgba(255,68,102,0.08);color:#ff4466}
@@ -212,6 +212,19 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
     <p>Click equipo → click rack · Drag mover<br>🔄 rotar · 📐 conect · ⬆⬇ techo/piso · 🔒 fijar · ✕ quitar</p>
   </div>
 
+  <!-- Presets Section -->
+  <div class="sb-section" id="wrap-sec-preset" style="min-height:60px">
+    <div class="sb-section-hdr" onclick="togSection('sec-preset')"><h3>Presets</h3><span class="sb-arrow" id="arr-sec-preset">▼</span></div>
+    <div class="sb-section-body" id="sec-preset" style="flex:1;overflow-y:auto">
+      <div class="preset-bar">
+        <div class="preset-row"><input type="text" id="pname" placeholder="Nombre..."><button onclick="savePreset()">💾</button></div>
+        <div class="pmsg" id="pmsg"></div>
+        <div class="preset-list" id="plist"></div>
+      </div>
+    </div>
+  </div>
+  <div class="sb-drag" data-resize="sec-preset,sec-rack"></div>
+
   <!-- Rack Config Section -->
   <div class="sb-section" id="wrap-sec-rack">
     <div class="sb-section-hdr" onclick="togSection('sec-rack')"><h3>Configuración Racks</h3><span class="sb-arrow" id="arr-sec-rack">▼</span></div>
@@ -231,26 +244,12 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
       <div class="eq-list" id="eq-list"></div>
     </div>
   </div>
-
-  <div class="sb-drag" data-resize="sec-eq,sec-preset"></div>
-
-  <!-- Presets Section -->
-  <div class="sb-section" id="wrap-sec-preset" style="min-height:60px">
-    <div class="sb-section-hdr" onclick="togSection('sec-preset')"><h3>Presets</h3><span class="sb-arrow" id="arr-sec-preset">▼</span></div>
-    <div class="sb-section-body" id="sec-preset" style="flex:1;overflow-y:auto">
-      <div class="preset-bar">
-        <div class="preset-row"><input type="text" id="pname" placeholder="Nombre..."><button onclick="savePreset()">💾</button></div>
-        <div class="pmsg" id="pmsg"></div>
-        <div class="preset-list" id="plist"></div>
-      </div>
-    </div>
-  </div>
 </div>
 <div class="main">
   <div class="toolbar">
     <label>U:</label>
     <select id="sel-u" onchange="rebuild()"><option value="2">2U</option><option value="3">3U</option><option value="4">4U</option></select>
-    <label>Prof:</label>
+    <label>Profundidad:</label>
     <select id="sel-d" onchange="rebuild()">
       <option value="228">9"</option>
       <option value="254">10"</option>
@@ -258,9 +257,11 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
       <option value="330">13"</option>
       <option value="356">14"</option>
     </select>
-    <label>Conect:</label>
+    <label>Conectores:</label>
     <select id="sel-conn" onchange="rebuild()"><option value="real">Reales</option><option value="L">L (25mm)</option><option value="rect">Rectos (60mm)</option><option value="none">Ocultar</option></select>
-    <label>Cond:</label>
+    <label style="font-size:9px">Opac:</label>
+    <input type="range" id="sel-opacity" min="5" max="100" value="50" style="width:50px;height:14px;accent-color:#ff6680" oninput="rebuild()">
+    <label>Energía:</label>
     <select id="sel-cond-mode" onchange="onCondModeChange()" style="font-size:10px">
       <option value="per-rack">Por rack</option>
       <option value="shared">Compartido A+B</option>
@@ -323,9 +324,15 @@ const EQ=[
   {id:'panel3',name:'Panel Combo 1U',w:483,h:44,d:30,wt:0.5,col:'#886644',cat:'panel',watts:0,amps:0,conn:[{side:0,type:'audio',depth:25,label:'XLR+Eth'}]},
   {id:'panel4',name:'Panel ciego 1U',w:483,h:44,d:5,wt:0.3,col:'#333344',cat:'panel',watts:0,amps:0,conn:[]},
   {id:'bandeja',name:'Bandeja 1U',w:483,h:44,d:200,wt:0.8,col:'#444455',cat:'panel',watts:0,amps:0,conn:[]},
+  // New devices
+  {id:'pa2u',name:'PlayAudio2U',w:483,h:87,d:200,wt:3.8,watts:30,amps:0.13,col:'#2266bb',cat:'play',conn:[{side:0,type:'ctrl',depth:8,label:'OLED+Enc+HP+MIDI'},{side:2,type:'audio',depth:35,label:'24×XLR out+4×XLR/TRS in'},{side:2,type:'data',depth:25,label:'USB-C×2+Eth×2+MIDI'},{side:2,type:'power',depth:30,label:'IEC'}]},
+  {id:'exbox',name:'EXBOX.MD Rev2',w:140,h:42,d:140,wt:1.0,watts:12,amps:0.05,col:'#4488aa',cat:'dig',conn:[{side:0,type:'ctrl',depth:3,label:'LEDs'},{side:2,type:'data',depth:20,label:'MADI SC+BNC+SFP'},{side:2,type:'data',depth:15,label:'RJ45×4'},{side:2,type:'power',depth:10,label:'Hirose×2'}]},
+  {id:'pulse16',name:'Pulse16 DX',w:483,h:44,d:200,wt:2.5,watts:25,amps:0.11,col:'#cc6633',cat:'dig',conn:[{side:0,type:'ctrl',depth:5,label:'TFT×2+HP+Enc'},{side:2,type:'audio',depth:30,label:'TRS×32'},{side:2,type:'data',depth:20,label:'ADAT×8+MADI SFP+BNC+Dante×2+MIDI'},{side:2,type:'power',depth:15,label:'DC ext'}]},
+  {id:'ultralite',name:'MOTU UltraLite mk5',w:218,h:45,d:175,wt:1.3,watts:15,amps:0.07,col:'#336699',cat:'dig',conn:[{side:0,type:'ctrl',depth:5,label:'OLED+XLR×2+Hi-Z'},{side:2,type:'audio',depth:25,label:'TRS×10out+6in'},{side:2,type:'data',depth:15,label:'USB-C+ADAT+MIDI'},{side:2,type:'power',depth:15,label:'DC ext'}]},
+  {id:'madiface',name:'RME MADIface USB',w:112,h:27,d:83,wt:0.27,watts:2,amps:0.4,col:'#1155aa',cat:'dig',conn:[{side:2,type:'data',depth:15,label:'MADI opt+coax+USB'},{side:2,type:'power',depth:0,label:'USB bus'}]},
 ];
-const CATS={play:'Playback',voz:'Voces/Apollo',conm:'Conmutación',red:'Red',pwr:'Energía',panel:'Paneles/Rack',cab:'Cables'};
-const CO=['play','voz','conm','red','pwr','panel','cab'];
+const CATS={play:'Playback',voz:'Voces/Apollo',conm:'Conmutación',red:'Red',dig:'Digital/Converters',pwr:'Energía',panel:'Paneles/Rack',cab:'Cables'};
+const CO=['play','voz','conm','red','dig','pwr','panel','cab'];
 const RW=483,UH=44.45,SC=0.95;
 const gEq=id=>EQ.find(e=>e.id===id);
 
@@ -339,7 +346,8 @@ let activeRack='a';
 let selId=null,drag=null,dOff={x:0,y:0};
 
 function cur(){return racks[activeRack]}
-function isUsed(id){return racks.a.items.some(i=>i.id===id)||racks.b.items.some(i=>i.id===id)}
+function useCount(id){return racks.a.items.filter(i=>i.id===id).length+racks.b.items.filter(i=>i.id===id).length}
+function isUsed(id){return useCount(id)>0}
 function rotDims(eq,rot){return(rot===90||rot===270)?{w:eq.d,d:eq.w}:{w:eq.w,d:eq.d}}
 function rotSide(s,rot){return(s+rot/90)%4}
 
@@ -401,10 +409,11 @@ function renderList(){
     if(!es.length)continue;
     h+=`<div class="cat-lbl">${CATS[c]}</div>`;
     for(const e of es){
-      const u=isUsed(e.id),s=selId===e.id;
+      const cnt=useCount(e.id),s=selId===e.id;
       const pwInfo=e.watts>0?` · ${e.watts}W`:''
-      h+=`<button class="eq-btn${s?' selected':''}${u?' used':''}" onclick="selEq('${e.id}')"${u?' disabled':''}>
-        <div class="ec" style="background:${e.col}"></div>
+      const badge=cnt>0?`<span style="position:absolute;top:3px;right:18px;background:#4a9fff;color:#fff;font-size:8px;padding:0 4px;border-radius:6px;font-weight:600">${cnt}</span>`:'';
+      h+=`<button class="eq-btn${s?' selected':''}" onclick="selEq('${e.id}')">
+        <div class="ec" style="background:${e.col}"></div>${badge}
         <div class="en">${e.name}</div>
         <div class="ed">${e.w}×${e.d}×${e.h}mm (${mmIn(e.w)}×${mmIn(e.d)}×${mmIn(e.h)}) · ${e.wt}kg${pwInfo}</div></button>`;
     }
@@ -414,7 +423,7 @@ function renderList(){
   document.getElementById('tag-b').textContent=racks.b.items.length?` (${racks.b.items.length})`:'';
 }
 
-function selEq(id){if(isUsed(id))return;selId=selId===id?null:id;renderList();
+function selEq(id){selId=selId===id?null:id;renderList();
   const m=document.getElementById('msg');
   if(selId){m.className='msg info';m.textContent=`→ Click en rack ${activeRack.toUpperCase()}: ${gEq(selId).name}`}
   else{m.className='msg';m.textContent=''}
@@ -424,6 +433,7 @@ function rebuild(){
   cur().u=+document.getElementById('sel-u').value;
   cur().d=+document.getElementById('sel-d').value;
   cur().conditioner=document.getElementById('sel-cond').value;
+  document.documentElement.style.setProperty('--conn-opacity',(+document.getElementById('sel-opacity').value)/100);
   if(sharedCondMode){
     // Both racks share the same conditioner
     racks.a.conditioner=cur().conditioner;
@@ -512,8 +522,9 @@ function renderWorkspace(){
     </div></div>`;
 
   // Build front view — 1U at bottom, higher U above (natural rack orientation)
-  const fSc=1.8;
-  const fW=Math.round(RW*fSc*0.25);const fUH=Math.round(UH*fSc);const fGap=6;
+  // Match lateral height: lateral uses sS=2.2, so fUH should match
+  const fUH=Math.round(UH*sS);const fSc=sS;const fGap=10;
+  const fW=Math.round(RW*fSc*0.25);
   const fH=fUH*r.u+fGap*(r.u-1);
   let frontHTML=`<div class="view-col"><div class="view-label">Vista frontal</div>
     <div style="display:flex;flex-direction:column;gap:${fGap}px;border:2px solid var(--brdh);border-radius:5px;background:var(--s1);padding:6px">`;
@@ -558,7 +569,7 @@ function onSlotDown(e,s){
   const t=e.target.closest('.pi');
   if(t){
     if(e.target.classList.contains('pbtn'))return;
-    const it=cur().items.find(i=>i.id===t.dataset.iid);
+    const it=cur().items.find(i=>(i.iid||i.id)===t.dataset.iid);
     if(!it||it.locked)return;
     drag=it;
     const r=t.getBoundingClientRect();
@@ -573,7 +584,14 @@ function onSlotDown(e,s){
   let z=Math.round((e.clientY-rc.top)/SC-rd.d/2);
   x=Math.max(0,Math.min(RW-rd.w,x));
   z=Math.max(0,Math.min(cur().d-rd.d,z));
-  cur().items.push({id:eq.id,slot:s,x,z,rot:0,locked:false,showConn:true});
+  const iid=eq.id+'_'+Date.now();
+  cur().items.push({id:eq.id,iid,slot:s,x,z,rot:0,locked:false,showConn:true});
+  // Auto-select conditioner when placing a power device
+  if(eq.cat==='pwr'&&CONDITIONERS[eq.id]){
+    cur().conditioner=eq.id;
+    document.getElementById('sel-cond').value=eq.id;
+    if(sharedCondMode){racks.a.conditioner=eq.id;racks.b.conditioner=eq.id}
+  }
   selId=null;rebuild();
 
   // Check power after adding
@@ -596,7 +614,7 @@ function onMove(e){
   const rc=sl.getBoundingClientRect();
   drag.x=Math.max(0,Math.min(RW-rd.w,Math.round((e.clientX-rc.left-dOff.x)/SC)));
   drag.z=Math.max(0,Math.min(cur().d-rd.d,Math.round((e.clientY-rc.top-dOff.y)/SC)));
-  const el=sl.querySelector(`[data-iid="${drag.id}"]`);
+  const el=sl.querySelector(`[data-iid="${drag.iid||drag.id}"]`);
   if(el){el.style.left=Math.round(drag.x*SC)+'px';el.style.top=Math.round(drag.z*SC)+'px'}
 }
 
@@ -610,7 +628,7 @@ function placeVis(it){
   let classes='pi'+(it.locked?' locked':' unlocked');
   // No shape class in top view — top view is always rectangular
   div.className=classes;
-  div.dataset.iid=it.id;
+  div.dataset.iid=it.iid||it.id;
   div.style.cssText=`left:${Math.round(it.x*SC)}px;top:${Math.round(it.z*SC)}px;width:${Math.round(rd.w*SC)}px;height:${Math.round(rd.d*SC)}px`;
 
   const body=document.createElement('div');
@@ -619,14 +637,15 @@ function placeVis(it){
   body.innerHTML=`<span class="pn">${eq.name}</span><span class="pd">${rd.w}×${rd.d} (${mmIn(rd.w)}×${mmIn(rd.d)})</span>`;
   div.appendChild(body);
 
+  const iid=it.iid||it.id;
   const cv=it.showConn!==false;
   const isCeil=!!it.ceil;
   const btns=document.createElement('span');btns.className='pb';
-  btns.innerHTML=`<button class="pbtn" onclick="event.stopPropagation();rotIt('${it.id}')">🔄</button>
-    <button class="pbtn" onclick="event.stopPropagation();togConn('${it.id}')">${cv?'📐':'📏'}</button>
-    <button class="pbtn" onclick="event.stopPropagation();togCeil('${it.id}')" title="${isCeil?'Anclado al techo':'Anclado al piso'}">${isCeil?'⬆':'⬇'}</button>
-    <button class="pbtn" onclick="event.stopPropagation();togLock('${it.id}')">${it.locked?'🔓':'🔒'}</button>
-    <button class="pbtn" onclick="event.stopPropagation();remIt('${it.id}')">✕</button>`;
+  btns.innerHTML=`<button class="pbtn" onclick="event.stopPropagation();rotIt('${iid}')">🔄</button>
+    <button class="pbtn" onclick="event.stopPropagation();togConn('${iid}')">${cv?'📐':'📏'}</button>
+    <button class="pbtn" onclick="event.stopPropagation();togCeil('${iid}')" title="${isCeil?'Anclado al techo':'Anclado al piso'}">${isCeil?'⬆':'⬇'}</button>
+    <button class="pbtn" onclick="event.stopPropagation();togLock('${iid}')">${it.locked?'🔓':'🔒'}</button>
+    <button class="pbtn" onclick="event.stopPropagation();remIt('${iid}')">✕</button>`;
   div.appendChild(btns);
 
   const cm=document.getElementById('sel-conn').value;
@@ -652,13 +671,13 @@ function placeVis(it){
   sl.appendChild(div);
 }
 
-function rotIt(id){const it=cur().items.find(i=>i.id===id);if(!it)return;it.rot=((it.rot||0)+90)%360;
-  const eq=gEq(id),rd=rotDims(eq,it.rot);
+function rotIt(iid){const it=cur().items.find(i=>i.iid===iid);if(!it)return;it.rot=((it.rot||0)+90)%360;
+  const eq=gEq(it.id),rd=rotDims(eq,it.rot);
   it.x=Math.max(0,Math.min(RW-rd.w,it.x));it.z=Math.max(0,Math.min(cur().d-rd.d,it.z));rebuild()}
-function togLock(id){const i=cur().items.find(x=>x.id===id);if(i)i.locked=!i.locked;rebuild()}
-function togCeil(id){const i=cur().items.find(x=>x.id===id);if(i)i.ceil=!i.ceil;rebuild()}
-function togConn(id){const i=cur().items.find(x=>x.id===id);if(i)i.showConn=!i.showConn;rebuild()}
-function remIt(id){cur().items=cur().items.filter(i=>i.id!==id);rebuild()}
+function togLock(iid){const i=cur().items.find(x=>x.iid===iid);if(i)i.locked=!i.locked;rebuild()}
+function togCeil(iid){const i=cur().items.find(x=>x.iid===iid);if(i)i.ceil=!i.ceil;rebuild()}
+function togConn(iid){const i=cur().items.find(x=>x.iid===iid);if(i)i.showConn=!i.showConn;rebuild()}
+function remIt(iid){cur().items=cur().items.filter(i=>i.iid!==iid);rebuild()}
 function clearAll(){cur().items=[];selId=null;rebuild()}
 
 // ===== COLLAPSIBLE SIDEBAR SECTIONS =====
@@ -921,7 +940,7 @@ function exportHTML(){
   }
 
   function rackFrontSVG(rack,label,col){
-    const fSc=1.0;const fGap=6;
+    const fSc=1.2;const fGap=10;
     const fW=Math.round(RW*fSc*0.2);const fUH=Math.round(UH*fSc);
     const fH=fUH*rack.u+fGap*(rack.u-1);
     const lblW=22;const svgW=lblW+fW+8;const svgH=fH+36;
@@ -1119,6 +1138,7 @@ function importJSON(evt){
           if(!i.rot)i.rot=0;
           if(i.showConn===undefined)i.showConn=true;
           if(i.ceil===undefined)i.ceil=false;
+          if(!i.iid)i.iid=i.id+'_'+Math.random().toString(36).slice(2,8);
         });
         // Filter out items whose IDs don't match any equipment
         r.items=r.items.filter(i=>gEq(i.id));
@@ -1371,8 +1391,8 @@ async function applyPreset(id){
       racks.a=pd.a;racks.b=pd.b;
       if(!racks.a.conditioner)racks.a.conditioner='none';
       if(!racks.b.conditioner)racks.b.conditioner='none';
-      racks.a.items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false});
-      racks.b.items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false});
+      racks.a.items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false;if(!i.iid)i.iid=i.id+'_'+Math.random().toString(36).slice(2,8)});
+      racks.b.items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false;if(!i.iid)i.iid=i.id+'_'+Math.random().toString(36).slice(2,8)});
       // Restore connector mode
       if(pd.connMode){document.getElementById('sel-conn').value=pd.connMode}
       // Restore shared cond mode
@@ -1384,7 +1404,7 @@ async function applyPreset(id){
     }else{
       cur().u=p.rack_u;cur().d=p.rack_depth;
       cur().items=Array.isArray(pd)?pd:[];
-      cur().items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true});
+      cur().items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(!i.iid)i.iid=i.id+'_'+Math.random().toString(36).slice(2,8)});
       document.getElementById('sel-u').value=cur().u;
       document.getElementById('sel-d').value=cur().d;
       rebuild();
