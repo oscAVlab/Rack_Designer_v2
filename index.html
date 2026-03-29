@@ -431,6 +431,7 @@ rebuild();
 
 function renderRackTabs(){
 const container=document.getElementById(‘rack-tabs’);
+if(!container)return;
 const keys=Object.keys(racks);
 let html=’’;
 for(const k of keys){
@@ -501,6 +502,7 @@ document.getElementById(‘opacity-wrap’).style.display=mode===‘none’?‘n
 }
 
 function rebuild(){
+try{
 cur().u=+document.getElementById(‘sel-u’).value;
 cur().d=+document.getElementById(‘sel-d’).value;
 cur().conditioner=document.getElementById(‘sel-cond’).value;
@@ -511,6 +513,7 @@ const c=cur().conditioner;
 for(const k of Object.keys(racks))racks[k].conditioner=c;
 }
 renderWorkspace();renderList();updateStats();
+}catch(e){console.error(‘rebuild:’,e);const ws=document.getElementById(‘workspace’);if(ws)ws.innerHTML=’<div style="color:#ff5c4a;padding:20px;font-size:14px">Error: ‘+e.message+’<br>’+e.stack+’</div>’}
 }
 
 function renderWorkspace(){
