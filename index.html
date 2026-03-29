@@ -517,11 +517,11 @@ function renderWorkspace(){
   const col=rackColor(activeRack);
 
   // ===== RESPONSIVE SCALE (top view only, only when needed) =====
-  const wsWidth=ws.clientWidth||ws.offsetWidth||600;
+  const wsWidth=ws.clientWidth||ws.offsetWidth||900;
   const labelW=32;
   const pad=32;
   const neededW=labelW+pad+Math.round(RW*SC); // what top view needs at full scale
-  const S=(wsWidth<neededW)?((wsWidth-labelW-pad)/RW):SC; // shrink only if doesn't fit
+  const S=(wsWidth>=neededW)?SC:Math.max(0.3,(wsWidth-labelW-pad)/RW); // shrink only on mobile, floor at 0.3
   curScale=S;
   const tH=r.u*UH;
 
