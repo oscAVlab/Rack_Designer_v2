@@ -121,7 +121,7 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
 
 .view-col{display:flex;flex-direction:column;align-items:center}
 .view-label{font-size:12px;color:var(--tm);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;font-weight:500}
-.rack-box{position:relative;border:2px solid var(--brdh);border-radius:5px;background:var(--s1);display:flex;flex-direction:column;gap:10px;padding:6px}
+.rack-box{position:relative;border:2px solid var(--brdh);border-radius:5px;background:var(--s1);display:flex;flex-direction:column;gap:0;padding:0}
 .rack-lbl{text-align:center;font-size:11px;color:var(--tm);margin:10px 0;letter-spacing:1px}
 .slot-row{display:flex;align-items:center;gap:0}
 .slot-lbl-out{font-size:10px;color:var(--tm);font-weight:600;width:28px;text-align:right;padding-right:5px;flex-shrink:0;user-select:none}
@@ -311,17 +311,20 @@ const CONDITIONERS={
 };
 
 const EQ=[
-  {id:'pa1u',name:'PlayAudio1U',w:460,h:44,d:200,wt:2.7,watts:15,amps:0.07,col:'#3378cc',cat:'play',conn:[{side:0,type:'ctrl',depth:5,label:'Display/Enc/HP'},{side:2,type:'audio',depth:30,label:'12×XLR out'},{side:2,type:'data',depth:25,label:'USB-C×2+Eth+MIDI'},{side:2,type:'power',depth:30,label:'IEC'}]},
-  {id:'ap1',name:'Apollo Twin 1',w:160,h:66,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'voz',shape:'trap-apollo',conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
-  {id:'ap2',name:'Apollo Twin 2',w:160,h:66,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'voz',shape:'trap-apollo',conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
-  {id:'hs1',name:'HotShot Nitroh',w:91,h:51,d:99,wt:0.5,watts:0,amps:0,col:'#cc8822',cat:'voz',shape:'trap-hotshot',conn:[{side:2,type:'audio',depth:25,label:'2×XLR in+1×XLR out'},{side:2,type:'ctrl',depth:0,label:'Switch'}]},
-  {id:'hs2',name:'HotShot Indio',w:91,h:51,d:99,wt:0.5,watts:0,amps:0,col:'#cc8822',cat:'voz',shape:'trap-hotshot',conn:[{side:2,type:'audio',depth:25,label:'2×XLR in+1×XLR out'},{side:2,type:'ctrl',depth:0,label:'Switch'}]},
+  {id:'pa1u',name:'PlayAudio1U',w:483,h:44,d:200,wt:2.7,watts:15,amps:0.07,col:'#3378cc',cat:'play',conn:[{side:0,type:'ctrl',depth:5,label:'Display/Enc/HP'},{side:2,type:'audio',depth:30,label:'12×XLR out'},{side:2,type:'data',depth:25,label:'USB-C×2+Eth+MIDI'},{side:2,type:'power',depth:30,label:'IEC'}]},
+  {id:'pa2u',name:'PlayAudio2U',w:483,h:87,d:200,wt:3.8,watts:30,amps:0.13,col:'#2266bb',cat:'play',conn:[{side:0,type:'ctrl',depth:8,label:'OLED+Enc+HP+MIDI'},{side:2,type:'audio',depth:35,label:'24×XLR out+4×XLR/TRS in'},{side:2,type:'data',depth:25,label:'USB-C×2+Eth×2+MIDI'},{side:2,type:'power',depth:30,label:'IEC'}]},
+  {id:'ap1',name:'Apollo Twin 1',w:160,h:66,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'play',shape:'trap-apollo',conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
+  {id:'ap2',name:'Apollo Twin 2',w:160,h:66,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'play',shape:'trap-apollo',conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
+  {id:'exbox',name:'EXBOX.MD Rev2',w:140,h:42,d:140,wt:1.0,watts:12,amps:0.05,col:'#4488aa',cat:'play',conn:[{side:0,type:'ctrl',depth:3,label:'LEDs'},{side:2,type:'data',depth:20,label:'MADI SC+BNC+SFP'},{side:2,type:'data',depth:15,label:'RJ45×4'},{side:2,type:'power',depth:10,label:'Hirose×2'}]},
+  {id:'pulse16',name:'Pulse16 DX',w:483,h:44,d:200,wt:2.5,watts:25,amps:0.11,col:'#cc6633',cat:'play',conn:[{side:0,type:'ctrl',depth:5,label:'TFT×2+HP+Enc'},{side:2,type:'audio',depth:30,label:'TRS×32'},{side:2,type:'data',depth:20,label:'ADAT×8+MADI+Dante×2+MIDI'},{side:2,type:'power',depth:15,label:'DC ext'}]},
+  {id:'ultralite',name:'MOTU UltraLite mk5',w:218,h:45,d:175,wt:1.3,watts:15,amps:0.07,col:'#336699',cat:'play',conn:[{side:0,type:'ctrl',depth:5,label:'OLED+XLR×2+Hi-Z'},{side:2,type:'audio',depth:25,label:'TRS×10out+6in'},{side:2,type:'data',depth:15,label:'USB-C+ADAT+MIDI'},{side:2,type:'power',depth:15,label:'DC ext'}]},
+  {id:'madiface',name:'RME MADIface USB',w:112,h:27,d:83,wt:0.27,watts:2,amps:0.4,col:'#1155aa',cat:'play',conn:[{side:2,type:'data',depth:15,label:'MADI opt+coax+USB'},{side:2,type:'power',depth:0,label:'USB bus'}]},
+  {id:'hs1',name:'HotShot Nitroh',w:91,h:51,d:99,wt:0.5,watts:0,amps:0,col:'#cc8822',cat:'conm',shape:'trap-hotshot',conn:[{side:2,type:'audio',depth:25,label:'2×XLR in+1×XLR out'},{side:2,type:'ctrl',depth:0,label:'Switch'}]},
+  {id:'hs2',name:'HotShot Indio',w:91,h:51,d:99,wt:0.5,watts:0,amps:0,col:'#cc8822',cat:'conm',shape:'trap-hotshot',conn:[{side:2,type:'audio',depth:25,label:'2×XLR in+1×XLR out'},{side:2,type:'ctrl',depth:0,label:'Switch'}]},
   {id:'bt',name:'Backtrack',w:150,h:48,d:117,wt:1.0,watts:12,amps:0.8,col:'#cc3322',cat:'conm',conn:[{side:2,type:'ctrl',depth:10,label:'HP+Knobs'},{side:2,type:'audio',depth:25,label:'TRS×4+XLR×2'},{side:2,type:'power',depth:15,label:'15V DC'}]},
   {id:'sw',name:'Switch PoE',w:100,h:25,d:98,wt:0.4,watts:60,amps:0.26,col:'#22aa66',cat:'red',conn:[{side:0,type:'data',depth:20,label:'5×RJ45'},{side:2,type:'power',depth:15,label:'DC'}]},
   {id:'slimq',name:'SlimQ F240',w:127,h:33,d:63,wt:0.4,watts:240,amps:1.04,col:'#556677',cat:'pwr',conn:[{side:0,type:'data',depth:15,label:'USB-C×2+DC'},{side:2,type:'power',depth:15,label:'AC cable'}]},
   {id:'pgp',name:'BLA PG-P',w:245,h:44,d:115,wt:0.8,watts:0,amps:0,col:'#cc2244',cat:'pwr',conn:[{side:0,type:'power',depth:40,label:'6×EU plugs'},{side:2,type:'power',depth:15,label:'AC in'}]},
-  {id:'ys1',name:'Y Split 1',w:30,h:25,d:80,wt:0.1,watts:0,amps:0,col:'#22aacc',cat:'cab',conn:[]},
-  {id:'ys2',name:'Y Split 2',w:30,h:25,d:80,wt:0.1,watts:0,amps:0,col:'#22aacc',cat:'cab',conn:[]},
   {id:'furman',name:'Furman M-10x E',w:483,h:44,d:190,wt:2.3,watts:0,amps:0,col:'#aa3355',cat:'pwr',conn:[{side:0,type:'ctrl',depth:5,label:'Switch+LED+outlet'},{side:2,type:'power',depth:25,label:'10×IEC+IEC in'}]},
   {id:'furman210',name:'Furman AC-210 A E',w:267,h:44,d:146,wt:1.6,watts:0,amps:0,col:'#993366',cat:'pwr',conn:[{side:0,type:'ctrl',depth:5,label:'Switch+LEDs'},{side:0,type:'power',depth:20,label:'IEC in'},{side:2,type:'power',depth:20,label:'2×IEC out'}]},
   {id:'panel1',name:'Panel XLR 1U',w:483,h:44,d:30,wt:0.5,col:'#666688',cat:'panel',watts:0,amps:0,conn:[{side:0,type:'audio',depth:25,label:'XLR front'}]},
@@ -329,15 +332,11 @@ const EQ=[
   {id:'panel3',name:'Panel Combo 1U',w:483,h:44,d:30,wt:0.5,col:'#886644',cat:'panel',watts:0,amps:0,conn:[{side:0,type:'audio',depth:25,label:'XLR+Eth'}]},
   {id:'panel4',name:'Panel ciego 1U',w:483,h:44,d:5,wt:0.3,col:'#333344',cat:'panel',watts:0,amps:0,conn:[]},
   {id:'bandeja',name:'Bandeja 1U',w:483,h:44,d:200,wt:0.8,col:'#444455',cat:'panel',watts:0,amps:0,conn:[]},
-  // New devices
-  {id:'pa2u',name:'PlayAudio2U',w:483,h:87,d:200,wt:3.8,watts:30,amps:0.13,col:'#2266bb',cat:'play',conn:[{side:0,type:'ctrl',depth:8,label:'OLED+Enc+HP+MIDI'},{side:2,type:'audio',depth:35,label:'24×XLR out+4×XLR/TRS in'},{side:2,type:'data',depth:25,label:'USB-C×2+Eth×2+MIDI'},{side:2,type:'power',depth:30,label:'IEC'}]},
-  {id:'exbox',name:'EXBOX.MD Rev2',w:140,h:42,d:140,wt:1.0,watts:12,amps:0.05,col:'#4488aa',cat:'dig',conn:[{side:0,type:'ctrl',depth:3,label:'LEDs'},{side:2,type:'data',depth:20,label:'MADI SC+BNC+SFP'},{side:2,type:'data',depth:15,label:'RJ45×4'},{side:2,type:'power',depth:10,label:'Hirose×2'}]},
-  {id:'pulse16',name:'Pulse16 DX',w:483,h:44,d:200,wt:2.5,watts:25,amps:0.11,col:'#cc6633',cat:'dig',conn:[{side:0,type:'ctrl',depth:5,label:'TFT×2+HP+Enc'},{side:2,type:'audio',depth:30,label:'TRS×32'},{side:2,type:'data',depth:20,label:'ADAT×8+MADI SFP+BNC+Dante×2+MIDI'},{side:2,type:'power',depth:15,label:'DC ext'}]},
-  {id:'ultralite',name:'MOTU UltraLite mk5',w:218,h:45,d:175,wt:1.3,watts:15,amps:0.07,col:'#336699',cat:'dig',conn:[{side:0,type:'ctrl',depth:5,label:'OLED+XLR×2+Hi-Z'},{side:2,type:'audio',depth:25,label:'TRS×10out+6in'},{side:2,type:'data',depth:15,label:'USB-C+ADAT+MIDI'},{side:2,type:'power',depth:15,label:'DC ext'}]},
-  {id:'madiface',name:'RME MADIface USB',w:112,h:27,d:83,wt:0.27,watts:2,amps:0.4,col:'#1155aa',cat:'dig',conn:[{side:2,type:'data',depth:15,label:'MADI opt+coax+USB'},{side:2,type:'power',depth:0,label:'USB bus'}]},
+  {id:'ys1',name:'Y Split 1',w:30,h:25,d:80,wt:0.1,watts:0,amps:0,col:'#22aacc',cat:'cab',conn:[]},
+  {id:'ys2',name:'Y Split 2',w:30,h:25,d:80,wt:0.1,watts:0,amps:0,col:'#22aacc',cat:'cab',conn:[]},
 ];
-const CATS={play:'Playback',voz:'Voces/Apollo',conm:'Conmutación',red:'Red',dig:'Digital/Converters',pwr:'Energía',panel:'Paneles/Rack',cab:'Cables'};
-const CO=['play','voz','conm','red','dig','pwr','panel','cab'];
+const CATS={play:'Playback (Audio Interface)',conm:'Conmutación',red:'Red',pwr:'Energía',panel:'Paneles/Rack',cab:'Cables'};
+const CO=['play','conm','red','pwr','panel','cab'];
 const RW=483,UH=44.45,SC=0.95;
 const gEq=id=>EQ.find(e=>e.id===id);
 
@@ -416,10 +415,10 @@ function renderList(){
     for(const e of es){
       const cnt=useCount(e.id),s=selId===e.id;
       const pwInfo=e.watts>0?` · ${e.watts}W`:''
-      const badge=cnt>0?`<span style="position:absolute;top:3px;right:18px;background:#4a9fff;color:#fff;font-size:8px;padding:0 4px;border-radius:6px;font-weight:600">${cnt}</span>`:'';
+      const badge=cnt>0?`<span style="display:inline-block;background:#4a9fff;color:#fff;font-size:8px;padding:0 4px;border-radius:6px;font-weight:600;margin-right:4px">${cnt}</span>`:'';
       h+=`<button class="eq-btn${s?' selected':''}" onclick="selEq('${e.id}')">
-        <div class="ec" style="background:${e.col}"></div>${badge}
-        <div class="en">${e.name}</div>
+        <div class="ec" style="background:${e.col}"></div>
+        <div class="en">${badge}${e.name}</div>
         <div class="ed">${e.w}×${e.d}×${e.h}mm (${mmIn(e.w)}×${mmIn(e.d)}×${mmIn(e.h)}) · ${e.wt}kg${pwInfo}</div></button>`;
     }
   }
@@ -531,31 +530,26 @@ function renderWorkspace(){
       ${r.u}U × ${rD}mm (${DEPTH_INCH[rD]||mmIn(rD)})<br>${dimsIn(RW,Math.round(r.u*UH),rD)}
     </div></div>`;
 
-  // Build front view — 1U at bottom, higher U above (natural rack orientation)
-  // Match lateral height: lateral uses sS=2.2, so fUH should match
-  const fUH=Math.round(UH*sS);const fSc=sS;const fGap=10;
-  const fW=Math.round(RW*fSc*0.25);
-  const fH=fUH*r.u+fGap*(r.u-1);
+  // Build front view — same structure as side view (absolute positioned items)
+  // Width = RW scaled, Height = total U height scaled, same sS factor
+  const fW=Math.round(RW*sS*0.25);
   let frontHTML=`<div class="view-col"><div class="view-label">Vista frontal</div>
-    <div style="display:flex;flex-direction:column;gap:${fGap}px;border:2px solid var(--brdh);border-radius:5px;background:var(--s1);padding:6px">`;
-  // Render from highest U at top to 1U at bottom
-  for(let s=r.u-1;s>=0;s--){
-    let itemsHTML='';
-    for(const it of r.items){
-      if(it.slot!==s)continue;
-      const eq=gEq(it.id);if(!eq)continue;
-      const rd=rotDims(eq,it.rot||0);
-      const iw=Math.round(rd.w*fSc*0.25);const ih=Math.round(eq.h*fSc);
-      const ix=Math.round(it.x*fSc*0.25);
-      const isCeil=!!it.ceil;
-      // Front view: bottom of div = floor of slot, top = ceiling
-      const iy=isCeil?0:(fUH-ih);
-      itemsHTML+=`<div style="position:absolute;left:${ix}px;top:${iy}px;width:${iw}px;height:${ih}px;background:${eq.col}20;border:1px solid ${eq.col}80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7px;color:${eq.col};overflow:hidden"><span style="pointer-events:none">${eq.name.split(' ')[0]}</span></div>`;
-    }
-    frontHTML+=`<div style="display:flex;align-items:center;gap:0">
-      <span style="font-size:9px;color:var(--tm);width:24px;text-align:right;padding-right:4px;flex-shrink:0">${s+1}U</span>
-      <div style="position:relative;width:${fW}px;height:${fUH}px;background:#111118;border:1px solid var(--brd);border-radius:2px">${itemsHTML}</div>
-    </div>`;
+    <div class="side-rack" style="width:${fW}px;height:${pH}px">`;
+  // U division lines
+  for(let i=1;i<r.u;i++){
+    frontHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*sS)}px"></div>`;
+  }
+  // Items
+  for(const it of r.items){
+    const eq=gEq(it.id);if(!eq)continue;
+    const rd=rotDims(eq,it.rot||0);
+    const isCeil=!!it.ceil;
+    let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
+    const tp=Math.round(pH-(bMM+eq.h)*sS);
+    const lp=Math.round(it.x*sS*0.25);
+    const wp=Math.round(rd.w*sS*0.25);
+    const hp=Math.max(Math.round(eq.h*sS),8);
+    frontHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col}"><span>${eq.name.split(' ')[0]}</span></div>`;
   }
   frontHTML+=`</div>
     <div style="font-size:10px;color:var(--tm);margin-top:8px;text-align:center">
@@ -870,7 +864,7 @@ function exportHTML(){
   const combined={items:tA.items+tB.items,wt:tA.wt+tB.wt,watts:tA.watts+tB.watts,amps:tA.amps+tB.amps};
 
   function rackTopSVG(rack,label,col){
-    const sc=0.55;const rD=rack.d;const gap=10;
+    const sc=0.55;const rD=rack.d;const gap=0;
     const slotH=Math.round(rD*sc);
     const lblW=26;// space for labels outside rack
     const rackW=Math.round(RW*sc);
@@ -950,7 +944,7 @@ function exportHTML(){
   }
 
   function rackFrontSVG(rack,label,col){
-    const fSc=1.2;const fGap=10;
+    const fSc=1.2;const fGap=0;
     const fW=Math.round(RW*fSc*0.2);const fUH=Math.round(UH*fSc);
     const fH=fUH*rack.u+fGap*(rack.u-1);
     const lblW=22;const svgW=lblW+fW+8;const svgH=fH+36;
