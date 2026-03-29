@@ -101,6 +101,12 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
 .toolbar .sep{width:1px;height:16px;background:var(--brd)}
 .toolbar .msg{font-size:11px;font-weight:600}
 .toolbar .msg.ok{color:#4aff9f}.toolbar .msg.warn{color:#ff5c4a}.toolbar .msg.info{color:#4a9fff}
+#opacity-wrap{display:inline-flex;align-items:center;margin-left:-2px}
+#sel-opacity{-webkit-appearance:none;appearance:none;background:transparent;outline:none;width:36px;height:12px;vertical-align:middle}
+#sel-opacity::-webkit-slider-runnable-track{height:2px;background:rgba(232,232,240,0.15);border-radius:1px}
+#sel-opacity::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:8px;border-radius:50%;background:rgba(232,232,240,0.8);margin-top:-3px;cursor:pointer}
+#sel-opacity::-moz-range-track{height:2px;background:rgba(232,232,240,0.15);border-radius:1px;border:none}
+#sel-opacity::-moz-range-thumb{width:8px;height:8px;border-radius:50%;background:rgba(232,232,240,0.8);border:none;cursor:pointer}
 
 .legend-bar{display:flex;gap:10px;padding:4px 10px;border-bottom:1px solid var(--brd);background:var(--s2);font-size:11px;color:var(--td);align-items:center;flex-wrap:wrap}
 .legend-bar .ld{display:inline-flex;align-items:center;gap:3px}
@@ -258,9 +264,8 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
       <option value="356">14"</option>
     </select>
     <label>Conectores:</label>
-    <select id="sel-conn" onchange="rebuild()"><option value="real">Reales</option><option value="L">L (25mm)</option><option value="rect">Rectos (60mm)</option><option value="none">Ocultar</option></select>
-    <label style="font-size:9px">Opac:</label>
-    <input type="range" id="sel-opacity" min="5" max="100" value="50" style="width:50px;height:14px;accent-color:#ff6680" oninput="rebuild()">
+    <select id="sel-conn" onchange="updateConnOpacityVis();rebuild()"><option value="real">Reales</option><option value="L">L (25mm)</option><option value="rect">Rectos (60mm)</option><option value="none">Ocultar</option></select>
+    <span id="opacity-wrap"><input type="range" id="sel-opacity" min="5" max="100" value="50" oninput="rebuild()"></span>
     <label>Energía:</label>
     <select id="sel-cond-mode" onchange="onCondModeChange()" style="font-size:10px">
       <option value="per-rack">Por rack</option>
@@ -427,6 +432,11 @@ function selEq(id){selId=selId===id?null:id;renderList();
   const m=document.getElementById('msg');
   if(selId){m.className='msg info';m.textContent=`→ Click en rack ${activeRack.toUpperCase()}: ${gEq(selId).name}`}
   else{m.className='msg';m.textContent=''}
+}
+
+function updateConnOpacityVis(){
+  const mode=document.getElementById('sel-conn').value;
+  document.getElementById('opacity-wrap').style.display=mode==='none'?'none':'inline-flex';
 }
 
 function rebuild(){
@@ -1202,6 +1212,7 @@ document.querySelectorAll('.sb-drag').forEach(handle=>{
   document.addEventListener('mouseup',()=>dragging=false);
 });
 
+updateConnOpacityVis();
 rebuild();
 
 // ===== SUPABASE =====
