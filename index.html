@@ -313,20 +313,20 @@ const CONDITIONERS={
 const EQ=[
   {id:'pa1u',name:'PlayAudio1U',w:483,h:44,d:200,wt:2.7,watts:15,amps:0.07,col:'#3378cc',cat:'play',conn:[{side:0,type:'ctrl',depth:5,label:'Display/Enc/HP'},{side:2,type:'audio',depth:30,label:'12×XLR out'},{side:2,type:'data',depth:25,label:'USB-C×2+Eth+MIDI'},{side:2,type:'power',depth:30,label:'IEC'}]},
   {id:'pa2u',name:'PlayAudio2U',w:483,h:87,d:200,wt:3.8,watts:30,amps:0.13,col:'#2266bb',cat:'play',conn:[{side:0,type:'ctrl',depth:8,label:'OLED+Enc+HP+MIDI'},{side:2,type:'audio',depth:35,label:'24×XLR out+4×XLR/TRS in'},{side:2,type:'data',depth:25,label:'USB-C×2+Eth×2+MIDI'},{side:2,type:'power',depth:30,label:'IEC'}]},
-  {id:'ap1',name:'Apollo Twin 1',w:160,h:63,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'play',shape:'trap-apollo',conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
-  {id:'ap2',name:'Apollo Twin 2',w:160,h:63,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'play',shape:'trap-apollo',conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
-  {id:'exbox',name:'EXBOX.MD Rev2',w:140,h:42,d:140,wt:1.0,watts:12,amps:0.05,col:'#4488aa',cat:'play',conn:[{side:0,type:'ctrl',depth:3,label:'LEDs'},{side:2,type:'data',depth:20,label:'MADI SC+BNC+SFP'},{side:2,type:'data',depth:15,label:'RJ45×4'},{side:2,type:'power',depth:10,label:'Hirose×2'}]},
-  {id:'pulse16',name:'Pulse16 DX',w:483,h:44,d:200,wt:2.5,watts:25,amps:0.11,col:'#cc6633',cat:'play',conn:[{side:0,type:'ctrl',depth:5,label:'TFT×2+HP+Enc'},{side:2,type:'audio',depth:30,label:'TRS×32'},{side:2,type:'data',depth:20,label:'ADAT×8+MADI+Dante×2+MIDI'},{side:2,type:'power',depth:15,label:'DC ext'}]},
-  {id:'ultralite',name:'MOTU UltraLite mk5',w:218,h:45,d:175,wt:1.3,watts:15,amps:0.07,col:'#336699',cat:'play',conn:[{side:0,type:'ctrl',depth:5,label:'OLED+XLR×2+Hi-Z'},{side:2,type:'audio',depth:25,label:'TRS×10out+6in'},{side:2,type:'data',depth:15,label:'USB-C+ADAT+MIDI'},{side:2,type:'power',depth:15,label:'DC ext'}]},
+  {id:'ap1',name:'Apollo Twin 1',w:160,h:63,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'play',shape:'trap-apollo',psu:{w:60,d:130,h:30,label:'PSU 12V'},conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
+  {id:'ap2',name:'Apollo Twin 2',w:160,h:63,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'play',shape:'trap-apollo',psu:{w:60,d:130,h:30,label:'PSU 12V'},conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
+  {id:'exbox',name:'EXBOX.MD Rev2',w:140,h:42,d:140,wt:1.0,watts:12,amps:0.05,col:'#4488aa',cat:'play',psu:{w:40,d:90,h:25,label:'PSU Hirose'},conn:[{side:0,type:'ctrl',depth:3,label:'LEDs'},{side:2,type:'data',depth:20,label:'MADI SC+BNC+SFP'},{side:2,type:'data',depth:15,label:'RJ45×4'},{side:2,type:'power',depth:10,label:'Hirose×2'}]},
+  {id:'pulse16',name:'Pulse16 DX',w:483,h:44,d:200,wt:2.5,watts:25,amps:0.11,col:'#cc6633',cat:'play',psu:{w:70,d:150,h:35,label:'PSU DC'},conn:[{side:0,type:'ctrl',depth:5,label:'TFT×2+HP+Enc'},{side:2,type:'audio',depth:30,label:'TRS×32'},{side:2,type:'data',depth:20,label:'ADAT×8+MADI+Dante×2+MIDI'},{side:2,type:'power',depth:15,label:'DC ext'}]},
+  {id:'ultralite',name:'MOTU UltraLite mk5',w:218,h:45,d:175,wt:1.3,watts:15,amps:0.07,col:'#336699',cat:'play',psu:{w:50,d:110,h:28,label:'PSU DC'},conn:[{side:0,type:'ctrl',depth:5,label:'OLED+XLR×2+Hi-Z'},{side:2,type:'audio',depth:25,label:'TRS×10out+6in'},{side:2,type:'data',depth:15,label:'USB-C+ADAT+MIDI'},{side:2,type:'power',depth:15,label:'DC ext'}]},
   {id:'madiface',name:'RME MADIface USB',w:112,h:27,d:83,wt:0.27,watts:2,amps:0.4,col:'#1155aa',cat:'play',conn:[{side:2,type:'data',depth:15,label:'MADI opt+coax+USB'},{side:2,type:'power',depth:0,label:'USB bus'}]},
   {id:'hs1',name:'HotShot Nitroh',w:91,h:51,d:99,wt:0.5,watts:0,amps:0,col:'#cc8822',cat:'conm',shape:'trap-hotshot',conn:[{side:2,type:'audio',depth:25,label:'2×XLR in+1×XLR out'},{side:2,type:'ctrl',depth:0,label:'Switch'}]},
   {id:'hs2',name:'HotShot Indio',w:91,h:51,d:99,wt:0.5,watts:0,amps:0,col:'#cc8822',cat:'conm',shape:'trap-hotshot',conn:[{side:2,type:'audio',depth:25,label:'2×XLR in+1×XLR out'},{side:2,type:'ctrl',depth:0,label:'Switch'}]},
-  {id:'bt',name:'Backtrack',w:150,h:48,d:117,wt:1.0,watts:12,amps:0.8,col:'#cc3322',cat:'conm',conn:[{side:2,type:'ctrl',depth:10,label:'HP+Knobs'},{side:2,type:'audio',depth:25,label:'TRS×4+XLR×2'},{side:2,type:'power',depth:15,label:'15V DC'}]},
-  {id:'sw',name:'Switch PoE',w:100,h:25,d:98,wt:0.4,watts:60,amps:0.26,col:'#22aa66',cat:'red',conn:[{side:0,type:'data',depth:20,label:'5×RJ45'},{side:2,type:'power',depth:15,label:'DC'}]},
-  {id:'slimq',name:'SlimQ F240',w:127,h:33,d:63,wt:0.4,watts:240,amps:1.04,col:'#556677',cat:'pwr',conn:[{side:0,type:'data',depth:15,label:'USB-C×2+DC'},{side:2,type:'power',depth:15,label:'AC cable'}]},
+  {id:'bt',name:'Backtrack',w:150,h:48,d:117,wt:1.0,watts:12,amps:0.8,col:'#cc3322',cat:'conm',psu:{w:40,d:80,h:25,label:'PSU 15V'},conn:[{side:2,type:'ctrl',depth:10,label:'HP+Knobs'},{side:2,type:'audio',depth:25,label:'TRS×4+XLR×2'},{side:2,type:'power',depth:15,label:'15V DC'}]},
+  {id:'sw',name:'Switch PoE',w:100,h:25,d:98,wt:0.4,watts:60,amps:0.26,col:'#22aa66',cat:'red',psu:{w:35,d:70,h:22,label:'PSU DC'},conn:[{side:0,type:'data',depth:20,label:'5×RJ45'},{side:2,type:'power',depth:15,label:'DC'}]},
+  {id:'slimq',name:'SlimQ F240',w:127,h:33,d:63,wt:0.4,watts:240,amps:1.04,col:'#556677',cat:'pwr',conn:[{side:1,type:'data',depth:15,label:'USB-C×2+DC'},{side:3,type:'power',depth:15,label:'AC cable'}]},
   {id:'pgp',name:'BLA PG-P',w:245,h:44,d:115,wt:0.8,watts:0,amps:0,col:'#cc2244',cat:'pwr',conn:[{side:0,type:'power',depth:40,label:'6×EU plugs'},{side:2,type:'power',depth:15,label:'AC in'}]},
   {id:'furman',name:'Furman M-10x E',w:483,h:44,d:190,wt:2.3,watts:0,amps:0,col:'#aa3355',cat:'pwr',conn:[{side:0,type:'ctrl',depth:5,label:'Switch+LED+outlet'},{side:2,type:'power',depth:25,label:'10×IEC+IEC in'}]},
-  {id:'furman210',name:'Furman AC-210 A E',w:267,h:44,d:146,wt:1.6,watts:0,amps:0,col:'#993366',cat:'pwr',conn:[{side:0,type:'ctrl',depth:5,label:'Switch+LEDs'},{side:0,type:'power',depth:20,label:'IEC in'},{side:2,type:'power',depth:20,label:'2×IEC out'}]},
+  {id:'furman210',name:'Furman AC-210 A E',w:267,h:44,d:146,wt:1.6,watts:0,amps:0,col:'#993366',cat:'pwr',conn:[{side:2,type:'ctrl',depth:5,label:'Switch+LEDs'},{side:2,type:'power',depth:20,label:'IEC in+2×IEC out'}]},
   {id:'panel1',name:'Panel XLR 1U',w:483,h:44,d:30,wt:0.5,col:'#666688',cat:'panel',watts:0,amps:0,conn:[{side:0,type:'audio',depth:25,label:'XLR front'}]},
   {id:'panel2',name:'Panel Ethercon 1U',w:483,h:44,d:30,wt:0.4,col:'#448866',cat:'panel',watts:0,amps:0,conn:[{side:0,type:'data',depth:20,label:'Eth front'}]},
   {id:'panel3',name:'Panel Combo 1U',w:483,h:44,d:30,wt:0.5,col:'#886644',cat:'panel',watts:0,amps:0,conn:[{side:0,type:'audio',depth:25,label:'XLR+Eth'}]},
@@ -456,104 +456,77 @@ function renderWorkspace(){
   const r=cur();
   const rD=r.d;
 
-  // Build top view
+  // ===== CONSISTENT SCALE FOR ALL VIEWS =====
+  // Base scale: px per mm. Top view is the reference.
+  const S=SC; // 0.95 px/mm — used for horizontal in all views
+  const vX=2.0; // vertical exaggeration for side/front (height is tiny vs width)
+
+  // Build top view: W (horizontal) × D (vertical)
   let topHTML=`<div class="view-col"><div class="view-label">Vista superior · Rack ${activeRack.toUpperCase()}</div>
     <div class="rack-lbl" style="margin-bottom:14px">▲ trasera</div>
-    <div class="rack-box" id="rack-box" style="width:${Math.round(RW*SC)+32}px">`;
+    <div class="rack-box" id="rack-box" style="width:${Math.round(RW*S)+32}px">`;
   for(let s=r.u-1;s>=0;s--){
-    topHTML+=`<div class="slot-row"><span class="slot-lbl-out">${s+1}U</span><div class="slot" data-slot="${s}" style="height:${Math.round(rD*SC)}px"></div></div>`;
+    topHTML+=`<div class="slot-row"><span class="slot-lbl-out">${s+1}U</span><div class="slot" data-slot="${s}" style="height:${Math.round(rD*S)}px"></div></div>`;
   }
   topHTML+=`</div><div class="rack-lbl" style="margin-top:14px">▼ frente</div></div>`;
 
-  // Build side view
-  const tH=r.u*UH,sS=2.2;
-  const pH=Math.round(tH*sS),pW=Math.round(rD*sS*0.4);
+  // Side view: D (horizontal) × H (vertical, exaggerated)
+  const tH=r.u*UH;
+  const sideH=Math.round(tH*S*vX);
+  const sideW=Math.round(rD*S);
   let sideHTML=`<div class="view-col"><div class="view-label">Vista lateral</div>
-    <div class="side-rack" id="side-rack" style="width:${pW}px;height:${pH}px">`;
+    <div class="side-rack" id="side-rack" style="width:${sideW}px;height:${sideH}px">`;
   for(let i=1;i<r.u;i++){
-    sideHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*sS)}px"></div>`;
+    sideHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*S*vX)}px"></div>`;
   }
   sideHTML+=`<div class="side-lbl" style="left:2px;bottom:-16px">frente</div>`;
   sideHTML+=`<div class="side-lbl" style="right:2px;bottom:-16px">atrás</div>`;
-  // Side items
   for(const it of r.items){
     const eq=gEq(it.id);if(!eq)continue;
-    // Per-item ceiling anchor: if ceil, item hangs from top of its slot
     const isCeil=!!it.ceil;
-    let bMM;
-    if(isCeil){
-      // Anchor to ceiling of slot: top of slot is (slot+1)*UH, item top = slot ceiling - 0
-      bMM=((it.slot+1)*UH)-eq.h;
-    }else{
-      bMM=it.slot*UH;
-    }
-    const tp=Math.round(pH-(bMM+eq.h)*sS);
+    let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
+    const tp=Math.round(sideH-(bMM+eq.h)*S*vX);
     const rd=rotDims(eq,it.rot||0);
-    // In top view: z=0 is trasera (top/back), z=max is frente (bottom/front)
-    // In side view: left=frente, right=atrás → flip z axis
-    const lp=Math.round((rD-(it.z||0)-rd.d)*sS*0.4);
-    const wp=Math.round(rd.d*sS*0.4);
-    const hp=Math.max(Math.round(eq.h*sS),8);
-    
-    // Trapezoidal side profile for apollo and hotshot
-    // Stepped: full height on connection side, shorter on opposite side
-    // Side view: left=front, right=back
-    // Connections originally on side 2 (back). Rotation shifts them.
+    const lp=Math.round((rD-(it.z||0)-rd.d)*S);
+    const wp=Math.round(rd.d*S);
+    const hp=Math.max(Math.round(eq.h*S*vX),6);
     let extraStyle='';
     if(eq.shape){
-      const rot=it.rot||0;
-      // Determine which side connections face after rotation
-      // side 2 rotated: (2 + rot/90) % 4
-      const connSide=(2+rot/90)%4;
-      // connSide 2 = back (right in side view) → step left, full right
-      // connSide 0 = front (left in side view) → step right, full left (flipped)
-      // connSide 1 or 3 = lateral → no step visible in side view
+      const rot=it.rot||0;const connSide=(2+rot/90)%4;
       if(connSide===2||connSide===0){
-        const flipped=(connSide===0);
-        if(eq.shape==='trap-apollo'){
-          extraStyle=flipped
-            ?'clip-path:polygon(0% 0%,50% 0%,50% 40%,100% 40%,100% 100%,0% 100%);'
-            :'clip-path:polygon(0% 40%,50% 40%,50% 0%,100% 0%,100% 100%,0% 100%);';
-        }else if(eq.shape==='trap-hotshot'){
-          extraStyle=flipped
-            ?'clip-path:polygon(0% 0%,55% 0%,55% 50%,100% 50%,100% 100%,0% 100%);'
-            :'clip-path:polygon(0% 50%,45% 50%,45% 0%,100% 0%,100% 100%,0% 100%);';
-        }
+        const fl=(connSide===0);
+        if(eq.shape==='trap-apollo'){extraStyle=fl?'clip-path:polygon(0% 0%,50% 0%,50% 40%,100% 40%,100% 100%,0% 100%);':'clip-path:polygon(0% 40%,50% 40%,50% 0%,100% 0%,100% 100%,0% 100%);'}
+        else if(eq.shape==='trap-hotshot'){extraStyle=fl?'clip-path:polygon(0% 0%,55% 0%,55% 50%,100% 50%,100% 100%,0% 100%);':'clip-path:polygon(0% 50%,45% 50%,45% 0%,100% 0%,100% 100%,0% 100%);'}
       }
-      // connSide 1 or 3: connections face left/right wall, side view shows rectangular profile
     }
-    
     sideHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col};${extraStyle}"><span>${eq.name.split(' ')[0]}</span></div>`;
   }
   sideHTML+=`</div>
     <div style="font-size:10px;color:var(--tm);margin-top:8px;text-align:center">
-      ${r.u}U × ${rD}mm (${DEPTH_INCH[rD]||mmIn(rD)})<br>${dimsIn(RW,Math.round(r.u*UH),rD)}
+      ${rD}mm × ${Math.round(tH)}mm
     </div></div>`;
 
-  // Build front view — same structure as side view
-  // Same sS for height, same 0.4 factor for horizontal to match side view proportions
-  const fW=Math.round(RW*sS*0.4);
+  // Front view: W (horizontal) × H (vertical, same exaggeration as side)
+  const frontW=Math.round(RW*S);
   let frontHTML=`<div class="view-col"><div class="view-label">Vista frontal</div>
-    <div class="side-rack" style="width:${fW}px;height:${pH}px">`;
-  // U division lines
+    <div class="side-rack" style="width:${frontW}px;height:${sideH}px">`;
   for(let i=1;i<r.u;i++){
-    frontHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*sS)}px"></div>`;
+    frontHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*S*vX)}px"></div>`;
   }
-  // Items
   for(const it of r.items){
     const eq=gEq(it.id);if(!eq)continue;
     const rd=rotDims(eq,it.rot||0);
     const isCeil=!!it.ceil;
     let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
-    const tp=Math.round(pH-(bMM+eq.h)*sS);
-    const lp=Math.round(it.x*sS*0.4);
-    const wp=Math.round(rd.w*sS*0.4);
-    const hp=Math.max(Math.round(eq.h*sS),8);
+    const tp=Math.round(sideH-(bMM+eq.h)*S*vX);
+    const lp=Math.round(it.x*S);
+    const wp=Math.round(rd.w*S);
+    const hp=Math.max(Math.round(eq.h*S*vX),6);
     frontHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col}"><span>${eq.name.split(' ')[0]}</span></div>`;
   }
   frontHTML+=`</div>
     <div style="font-size:10px;color:var(--tm);margin-top:8px;text-align:center">
-      ${RW}mm (${mmIn(RW)}) × ${Math.round(r.u*UH)}mm (${mmIn(Math.round(r.u*UH))})
+      ${RW}mm × ${Math.round(tH)}mm
     </div></div>`;
 
   ws.innerHTML=topHTML+sideHTML+frontHTML;
@@ -573,6 +546,16 @@ function onSlotDown(e,s){
   const t=e.target.closest('.pi');
   if(t){
     if(e.target.classList.contains('pbtn'))return;
+    // Check if it's a PSU element
+    if(t.dataset.psu){
+      const it=cur().items.find(i=>(i.iid||i.id)===t.dataset.psu);
+      if(it){
+        drag={_psu:true,item:it,el:t};
+        const r=t.getBoundingClientRect();
+        dOff={x:e.clientX-r.left,y:e.clientY-r.top};
+        t.style.zIndex='20';e.preventDefault();return;
+      }
+    }
     const it=cur().items.find(i=>(i.iid||i.id)===t.dataset.iid);
     if(!it||it.locked)return;
     drag=it;
@@ -611,6 +594,19 @@ function onSlotDown(e,s){
 
 function onMove(e){
   if(!drag)return;
+  if(drag._psu){
+    // Dragging a PSU
+    const it=drag.item;const eq=gEq(it.id);if(!eq||!eq.psu)return;
+    const sl=document.querySelector(`.slot[data-slot="${it.slot}"]`);
+    if(!sl)return;
+    const rc=sl.getBoundingClientRect();
+    const psuW=eq.psu.w,psuD=eq.psu.d;
+    it.psuX=Math.max(0,Math.min(RW-psuW,Math.round((e.clientX-rc.left-dOff.x)/SC)));
+    it.psuZ=Math.max(0,Math.min(cur().d-psuD,Math.round((e.clientY-rc.top-dOff.y)/SC)));
+    drag.el.style.left=Math.round(it.psuX*SC)+'px';
+    drag.el.style.top=Math.round(it.psuZ*SC)+'px';
+    return;
+  }
   const eq=gEq(drag.id);
   const rd=rotDims(eq,drag.rot||0);
   const sl=document.querySelector(`.slot[data-slot="${drag.slot}"]`);
@@ -671,6 +667,20 @@ function placeVis(it){
       cz.innerHTML=`<span style="pointer-events:none">${c.label}</span>`;
       div.appendChild(cz);
     }
+  }
+  // Render PSU (external power supply) as separate draggable piece in slot
+  if(eq.psu&&cv&&cm!=='none'){
+    const psu=eq.psu;
+    const pw=Math.round(psu.w*SC);const pd=Math.round(psu.d*SC);
+    // Default PSU position: next to device on the right
+    const px=it.psuX!==undefined?Math.round(it.psuX*SC):Math.round((it.x+rd.w+5)*SC);
+    const pz=it.psuZ!==undefined?Math.round(it.psuZ*SC):Math.round(it.z*SC);
+    const psuDiv=document.createElement('div');
+    psuDiv.className='pi unlocked';
+    psuDiv.dataset.psu=it.iid||it.id;
+    psuDiv.style.cssText=`left:${px}px;top:${pz}px;width:${pw}px;height:${pd}px;opacity:var(--conn-opacity,0.5);z-index:4`;
+    psuDiv.innerHTML=`<div class="pi-body" style="background:rgba(255,102,128,0.08);border:1px dashed #ff668088;color:#ff6680;font-size:5px"><span class="pn" style="font-size:6px">${psu.label}</span></div>`;
+    sl.appendChild(psuDiv);
   }
   sl.appendChild(div);
 }
