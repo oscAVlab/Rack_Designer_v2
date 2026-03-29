@@ -112,10 +112,16 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
 .legend-bar .ld{display:inline-flex;align-items:center;gap:3px}
 .legend-bar .ld .lb{width:14px;height:8px;border:1px dashed;border-radius:2px}
 
-.rack-tabs{display:flex;gap:2px;padding:4px 10px 0;background:var(--s1);border-bottom:1px solid var(--brd)}
-.rack-tab{padding:5px 14px;font-size:13px;cursor:pointer;border:1px solid var(--brd);border-bottom:none;border-radius:5px 5px 0 0;background:var(--s2);color:var(--td);font-family:inherit;font-weight:500}
-.rack-tab.active{background:var(--bg);color:var(--t);border-color:var(--brdh)}
-.rack-tab .rtag{font-size:10px;color:var(--tm);margin-left:5px}
+.rack-tabs{display:flex;gap:2px;padding:4px 10px 0;background:var(--s1);border-bottom:1px solid var(--brd);align-items:center}
+.rack-tab{padding:5px 14px;font-size:13px;cursor:pointer;border:1px solid var(--brd);border-bottom:none;border-radius:5px 5px 0 0;background:var(--s2);color:var(--td);font-family:inherit;font-weight:500;transition:border-color .15s,color .15s}
+.rack-tab.active{background:var(--bg);border-color:var(--brdh)}
+.rack-tab .rtag{font-size:10px;margin-left:5px}
+.rack-tabs .tabs-spacer{flex:1}
+.rack-tabs .rack-mgmt{display:flex;gap:3px;align-items:center;padding-bottom:4px}
+.rack-tabs .rack-mgmt button{background:var(--s2);border:1px solid var(--brd);color:var(--td);width:22px;height:22px;border-radius:3px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.rack-tabs .rack-mgmt button:hover{border-color:var(--brdh);color:var(--t)}
+.rack-tabs .rack-mgmt button:disabled{opacity:0.3;cursor:default}
+.carryon-ref{font-size:9px;color:var(--tm);padding:0 10px 3px;background:var(--s1);border-bottom:1px solid var(--brd)}
 
 .workspace{flex:1;display:flex;overflow:auto;padding:12px;gap:20px;align-items:flex-start;justify-content:center;flex-wrap:wrap;min-height:0}
 
@@ -165,9 +171,7 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
 .sum-table td{padding:2px 6px;border-bottom:1px solid rgba(42,42,53,0.5);white-space:nowrap}
 .sum-table tr:hover td{background:var(--s2)}
 .sum-table .dot{display:inline-block;width:8px;height:8px;border-radius:3px;margin-right:5px;vertical-align:middle}
-.sum-table .loc{font-size:10px;color:var(--tm)}
-.sum-table .loc.a{color:#22d4bf}
-.sum-table .loc.b{color:#d466ff}
+.sum-table .loc{font-size:10px}
 .sum-table .loc.out{color:var(--tm);font-style:italic}
 .sum-total{margin-top:5px;font-size:11px;color:var(--td);display:flex;gap:16px;flex-wrap:wrap}
 
@@ -290,10 +294,8 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
     <div class="sep"></div>
     <span style="color:var(--tm)">▲top=trasera ▼bottom=frente</span>
   </div>
-  <div class="rack-tabs">
-    <div class="rack-tab active" id="tab-a" onclick="switchRack('a')">Rack A<span class="rtag" id="tag-a"></span></div>
-    <div class="rack-tab" id="tab-b" onclick="switchRack('b')">Rack B<span class="rtag" id="tag-b"></span></div>
-  </div>
+  <div class="rack-tabs" id="rack-tabs"></div>
+  <div class="carryon-ref" id="carryon-ref">📐 Carry-on máx: 560×355×230mm (22×14×9") — IATA estándar</div>
   <div class="workspace" id="workspace"></div>
   <div class="summary-wrap" id="summary-wrap" style="height:160px">
     <div class="summary-drag" id="summary-drag"></div>
@@ -340,6 +342,15 @@ const CO=['play','conm','red','pwr','panel','cab'];
 const RW=483,UH=44.45,SC=0.95;
 const gEq=id=>EQ.find(e=>e.id===id);
 
+// ===== RACK COLORS =====
+const RACK_COLORS=['#22d4bf','#d466ff','#ff9944','#44aaff','#4aff9f','#ff6680'];
+function rackColor(key){
+  const keys=Object.keys(racks);
+  const idx=keys.indexOf(key);
+  return RACK_COLORS[idx%RACK_COLORS.length];
+}
+function rackLabel(key){return'Rack '+key.toUpperCase()}
+
 // ===== TWO RACK STATE =====
 let racks={
   a:{u:2,d:228,conditioner:'none',items:[]},
@@ -348,9 +359,10 @@ let racks={
 let sharedCondMode=false; // false = per-rack, true = shared A+B
 let activeRack='a';
 let selId=null,drag=null,dOff={x:0,y:0};
+let activePresetName=''; // Track current preset name for export
 
 function cur(){return racks[activeRack]}
-function useCount(id){return racks.a.items.filter(i=>i.id===id).length+racks.b.items.filter(i=>i.id===id).length}
+function useCount(id){return Object.values(racks).reduce((sum,r)=>sum+r.items.filter(i=>i.id===id).length,0)}
 function isUsed(id){return useCount(id)>0}
 function rotDims(eq,rot){return(rot===90||rot===270)?{w:eq.d,d:eq.w}:{w:eq.w,d:eq.d}}
 function rotSide(s,rot){return(s+rot/90)%4}
@@ -366,16 +378,20 @@ function calcRackPower(rack){
 }
 
 function calcCombinedPower(){
-  const a=calcRackPower(racks.a),b=calcRackPower(racks.b);
-  return{totalW:a.totalW+b.totalW,totalA:a.totalA+b.totalA};
+  let totalW=0,totalA=0;
+  for(const r of Object.values(racks)){
+    const p=calcRackPower(r);
+    totalW+=p.totalW;totalA+=p.totalA;
+  }
+  return{totalW,totalA};
 }
 
 function getPowerStatus(rack){
   const cond=CONDITIONERS[rack.conditioner||'none'];
   if(sharedCondMode){
-    // In shared mode, validate combined A+B against the active rack's conditioner
     const pw=calcCombinedPower();
-    const sharedCond=CONDITIONERS[racks.a.conditioner||'none'];
+    const firstKey=Object.keys(racks)[0];
+    const sharedCond=CONDITIONERS[racks[firstKey].conditioner||'none'];
     const overW=pw.totalW>sharedCond.maxW;
     const overA=pw.totalA>sharedCond.maxA;
     return{...pw,cond:sharedCond,overW,overA,over:overW||overA};
@@ -389,21 +405,64 @@ function getPowerStatus(rack){
 function onCondModeChange(){
   sharedCondMode=document.getElementById('sel-cond-mode').value==='shared';
   if(sharedCondMode){
-    // Sync both racks to same conditioner
-    racks.b.conditioner=racks.a.conditioner;
+    // Sync all racks to same conditioner
+    const c=cur().conditioner;
+    for(const k of Object.keys(racks))racks[k].conditioner=c;
   }
   rebuild();
 }
 
 function switchRack(r){
   activeRack=r;
-  document.getElementById('tab-a').className='rack-tab'+(r==='a'?' active':'');
-  document.getElementById('tab-b').className='rack-tab'+(r==='b'?' active':'');
+  renderRackTabs();
   document.getElementById('sel-u').value=cur().u;
   document.getElementById('sel-d').value=cur().d;
   document.getElementById('sel-cond').value=cur().conditioner||'none';
   selId=null;
   rebuild();
+}
+
+function renderRackTabs(){
+  const container=document.getElementById('rack-tabs');
+  const keys=Object.keys(racks);
+  let html='';
+  for(const k of keys){
+    const col=rackColor(k);
+    const isActive=k===activeRack;
+    const cnt=racks[k].items.length;
+    const tag=cnt?` (${cnt})`:'';
+    html+=`<div class="rack-tab${isActive?' active':''}" onclick="switchRack('${k}')" style="color:${isActive?col:col+'88'};border-color:${isActive?col+'66':'var(--brd)'}">${rackLabel(k)}<span class="rtag" style="color:${col}88">${tag}</span></div>`;
+  }
+  html+=`<div class="tabs-spacer"></div>`;
+  html+=`<div class="rack-mgmt">`;
+  html+=`<button onclick="addRack()" title="Añadir rack"${keys.length>=6?' disabled':''}>+</button>`;
+  html+=`<button onclick="removeRack()" title="Quitar rack"${keys.length<=1?' disabled':''}>−</button>`;
+  html+=`</div>`;
+  container.innerHTML=html;
+}
+
+function addRack(){
+  const keys=Object.keys(racks);
+  if(keys.length>=6)return;
+  // Find next letter
+  const letters='abcdefghijklmnopqrstuvwxyz';
+  let newKey='';
+  for(const l of letters){if(!racks[l]){newKey=l;break}}
+  if(!newKey)return;
+  racks[newKey]={u:2,d:228,conditioner:'none',items:[]};
+  switchRack(newKey);
+}
+
+function removeRack(){
+  const keys=Object.keys(racks);
+  if(keys.length<=1)return;
+  const rk=activeRack;
+  const label=rackLabel(rk);
+  showConfirm(`¿Eliminar <strong>${label}</strong> y todos sus equipos?`,()=>{
+    delete racks[rk];
+    const remaining=Object.keys(racks);
+    switchRack(remaining[0]);
+  },true);
 }
 
 function renderList(){
@@ -423,8 +482,7 @@ function renderList(){
     }
   }
   document.getElementById('eq-list').innerHTML=h;
-  document.getElementById('tag-a').textContent=racks.a.items.length?` (${racks.a.items.length})`:'';
-  document.getElementById('tag-b').textContent=racks.b.items.length?` (${racks.b.items.length})`:'';
+  renderRackTabs();
 }
 
 function selEq(id){selId=selId===id?null:id;renderList();
@@ -444,9 +502,9 @@ function rebuild(){
   cur().conditioner=document.getElementById('sel-cond').value;
   document.documentElement.style.setProperty('--conn-opacity',(+document.getElementById('sel-opacity').value)/100);
   if(sharedCondMode){
-    // Both racks share the same conditioner
-    racks.a.conditioner=cur().conditioner;
-    racks.b.conditioner=cur().conditioner;
+    // All racks share the same conditioner
+    const c=cur().conditioner;
+    for(const k of Object.keys(racks))racks[k].conditioner=c;
   }
   renderWorkspace();renderList();updateStats();
 }
@@ -455,29 +513,31 @@ function renderWorkspace(){
   const ws=document.getElementById('workspace');
   const r=cur();
   const rD=r.d;
+  const col=rackColor(activeRack);
 
-  // ===== CONSISTENT SCALE FOR ALL VIEWS =====
-  // Base scale: px per mm. Top view is the reference.
-  const S=SC; // 0.95 px/mm — used for horizontal in all views
-  const vX=2.0; // vertical exaggeration for side/front (height is tiny vs width)
+  // ===== TRUE-PROPORTION SCALE FOR ALL VIEWS =====
+  const S=SC; // 0.95 px/mm — uniform scale, no exaggeration
+  const tH=r.u*UH; // total height in mm
+
+  // Carry-on reference dims in mm (IATA: 560×355×230mm = 22×14×9")
+  const CARRYON={w:560,d:355,h:230};
 
   // Build top view: W (horizontal) × D (vertical)
-  let topHTML=`<div class="view-col"><div class="view-label">Vista superior · Rack ${activeRack.toUpperCase()}</div>
+  let topHTML=`<div class="view-col"><div class="view-label">Vista superior · <span style="color:${col}">${rackLabel(activeRack)}</span></div>
     <div class="rack-lbl" style="margin-bottom:14px">▲ trasera</div>
-    <div class="rack-box" id="rack-box" style="width:${Math.round(RW*S)+32}px">`;
+    <div class="rack-box" id="rack-box" style="width:${Math.round(RW*S)+32}px;border-color:${col}44">`;
   for(let s=r.u-1;s>=0;s--){
     topHTML+=`<div class="slot-row"><span class="slot-lbl-out">${s+1}U</span><div class="slot" data-slot="${s}" style="height:${Math.round(rD*S)}px"></div></div>`;
   }
   topHTML+=`</div><div class="rack-lbl" style="margin-top:14px">▼ frente</div></div>`;
 
-  // Side view: D (horizontal) × H (vertical, exaggerated)
-  const tH=r.u*UH;
-  const sideH=Math.round(tH*S*vX);
+  // Side view: D (horizontal) × H (vertical) — TRUE proportions, no exaggeration
+  const sideH=Math.round(tH*S);
   const sideW=Math.round(rD*S);
   let sideHTML=`<div class="view-col"><div class="view-label">Vista lateral</div>
-    <div class="side-rack" id="side-rack" style="width:${sideW}px;height:${sideH}px">`;
+    <div class="side-rack" id="side-rack" style="width:${sideW}px;height:${sideH}px;border-color:${col}44">`;
   for(let i=1;i<r.u;i++){
-    sideHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*S*vX)}px"></div>`;
+    sideHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*S)}px"></div>`;
   }
   sideHTML+=`<div class="side-lbl" style="left:2px;bottom:-16px">frente</div>`;
   sideHTML+=`<div class="side-lbl" style="right:2px;bottom:-16px">atrás</div>`;
@@ -485,11 +545,11 @@ function renderWorkspace(){
     const eq=gEq(it.id);if(!eq)continue;
     const isCeil=!!it.ceil;
     let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
-    const tp=Math.round(sideH-(bMM+eq.h)*S*vX);
+    const tp=Math.round(sideH-(bMM+eq.h)*S);
     const rd=rotDims(eq,it.rot||0);
     const lp=Math.round((rD-(it.z||0)-rd.d)*S);
     const wp=Math.round(rd.d*S);
-    const hp=Math.max(Math.round(eq.h*S*vX),6);
+    const hp=Math.max(Math.round(eq.h*S),4);
     let extraStyle='';
     if(eq.shape){
       const rot=it.rot||0;const connSide=(2+rot/90)%4;
@@ -499,30 +559,30 @@ function renderWorkspace(){
         else if(eq.shape==='trap-hotshot'){extraStyle=fl?'clip-path:polygon(0% 0%,55% 0%,55% 50%,100% 50%,100% 100%,0% 100%);':'clip-path:polygon(0% 50%,45% 50%,45% 0%,100% 0%,100% 100%,0% 100%);'}
       }
     }
-    sideHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col};${extraStyle}"><span>${eq.name.split(' ')[0]}</span></div>`;
+    sideHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col};${extraStyle}"><span>${hp>=10?eq.name.split(' ')[0]:''}</span></div>`;
   }
   sideHTML+=`</div>
     <div style="font-size:10px;color:var(--tm);margin-top:8px;text-align:center">
       ${rD}mm × ${Math.round(tH)}mm
     </div></div>`;
 
-  // Front view: W (horizontal) × H (vertical, same exaggeration as side)
+  // Front view: W (horizontal) × H (vertical) — TRUE proportions
   const frontW=Math.round(RW*S);
   let frontHTML=`<div class="view-col"><div class="view-label">Vista frontal</div>
-    <div class="side-rack" style="width:${frontW}px;height:${sideH}px">`;
+    <div class="side-rack" style="width:${frontW}px;height:${sideH}px;border-color:${col}44">`;
   for(let i=1;i<r.u;i++){
-    frontHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*S*vX)}px"></div>`;
+    frontHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*S)}px"></div>`;
   }
   for(const it of r.items){
     const eq=gEq(it.id);if(!eq)continue;
     const rd=rotDims(eq,it.rot||0);
     const isCeil=!!it.ceil;
     let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
-    const tp=Math.round(sideH-(bMM+eq.h)*S*vX);
+    const tp=Math.round(sideH-(bMM+eq.h)*S);
     const lp=Math.round(it.x*S);
     const wp=Math.round(rd.w*S);
-    const hp=Math.max(Math.round(eq.h*S*vX),6);
-    frontHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col}"><span>${eq.name.split(' ')[0]}</span></div>`;
+    const hp=Math.max(Math.round(eq.h*S),4);
+    frontHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col}"><span>${hp>=10?eq.name.split(' ')[0]:''}</span></div>`;
   }
   frontHTML+=`</div>
     <div style="font-size:10px;color:var(--tm);margin-top:8px;text-align:center">
@@ -530,6 +590,13 @@ function renderWorkspace(){
     </div></div>`;
 
   ws.innerHTML=topHTML+sideHTML+frontHTML;
+
+  // Update carry-on reference
+  const fits=RW<=CARRYON.w && tH<=CARRYON.h && rD<=CARRYON.d;
+  const coEl=document.getElementById('carryon-ref');
+  if(coEl){
+    coEl.innerHTML=`📐 Carry-on: 560×355×230mm — Rack: ${RW}×${Math.round(tH)}×${rD}mm — ${fits?'<span style="color:#4aff9f">✓ Cabe</span>':'<span style="color:#ff5c4a">✕ No cabe</span>'}`;
+  }
 
   // Attach events to slots
   document.querySelectorAll('.slot').forEach(sl=>{
@@ -577,7 +644,7 @@ function onSlotDown(e,s){
   if(eq.cat==='pwr'&&CONDITIONERS[eq.id]){
     cur().conditioner=eq.id;
     document.getElementById('sel-cond').value=eq.id;
-    if(sharedCondMode){racks.a.conditioner=eq.id;racks.b.conditioner=eq.id}
+    if(sharedCondMode){for(const k of Object.keys(racks))racks[k].conditioner=eq.id}
   }
   selId=null;rebuild();
 
@@ -679,7 +746,9 @@ function placeVis(it){
     psuDiv.className='pi unlocked';
     psuDiv.dataset.psu=it.iid||it.id;
     psuDiv.style.cssText=`left:${px}px;top:${pz}px;width:${pw}px;height:${pd}px;opacity:var(--conn-opacity,0.5);z-index:4`;
-    psuDiv.innerHTML=`<div class="pi-body" style="background:rgba(255,102,128,0.08);border:1px dashed #ff668088;color:#ff6680;font-size:5px"><span class="pn" style="font-size:6px">${psu.label}</span></div>`;
+    // Show abbreviated equipment name on PSU
+    const eqAbbr=eq.name.split(' ').map(w=>w.slice(0,4)).join(' ').slice(0,12);
+    psuDiv.innerHTML=`<div class="pi-body" style="background:rgba(255,102,128,0.08);border:1px dashed #ff668088;color:#ff6680;font-size:5px"><span class="pn" style="font-size:6px">${psu.label}</span><span class="pd" style="font-size:5px;opacity:0.7">${eqAbbr}</span></div>`;
     sl.appendChild(psuDiv);
   }
   sl.appendChild(div);
@@ -711,45 +780,44 @@ function renderRackCfg(){
   const el=document.getElementById('rack-cfg');
   if(!el)return;
   let html='';
+  const keys=Object.keys(racks);
   
   if(sharedCondMode){
     // Shared: show combined power info
     const pw=calcCombinedPower();
-    const cond=CONDITIONERS[racks.a.conditioner||'none'];
+    const cond=CONDITIONERS[racks[keys[0]].conditioner||'none'];
     const overW=pw.totalW>cond.maxW;
     const overA=pw.totalA>cond.maxA;
     const over=overW||overA;
     const pwCls=over?'color:#ff5c4a;font-weight:600':'color:#ff6680';
     const maxStr=cond.maxW===Infinity?'∞':`${cond.maxW}W / ${cond.maxA}A`;
     
-    for(const rk of ['a','b']){
+    for(const rk of keys){
       const r=racks[rk];
-      const label=rk==='a'?'Rack A':'Rack B';
-      const col=rk==='a'?'#22d4bf':'#d466ff';
+      const col=rackColor(rk);
       const inch=DEPTH_INCH[r.d]||r.d+'mm';
       html+=`<div class="cfg-rack">
-        <div class="cfg-title" style="color:${col}">${label}</div>
+        <div class="cfg-title" style="color:${col}">${rackLabel(rk)}</div>
         <div class="cfg-row"><span>${r.u}U × ${r.d}mm (${inch}) · ${RW}×${Math.round(r.u*UH)}×${r.d}mm</span><span class="v">${r.items.length} eq</span></div>
       </div>`;
     }
     html+=`<div class="cfg-rack" style="border-top:1px solid var(--brd);padding-top:4px;margin-top:2px">
       <div class="cfg-title" style="color:var(--t)">Power Conditioner (compartido)</div>
       <div class="cfg-row"><span>${cond.name}</span></div>
-      <div class="cfg-row"><span>Consumo A+B</span><span style="${pwCls}">${pw.totalW}W / ${pw.totalA.toFixed(2)}A</span></div>
+      <div class="cfg-row"><span>Consumo combinado</span><span style="${pwCls}">${pw.totalW}W / ${pw.totalA.toFixed(2)}A</span></div>
       <div class="cfg-row"><span>Límite</span><span class="v">${maxStr}</span></div>
     </div>`;
   }else{
-    for(const rk of ['a','b']){
+    for(const rk of keys){
       const r=racks[rk];
       const ps=getPowerStatus(r);
       const pwCls=ps.over?'color:#ff5c4a;font-weight:600':'color:#ff6680';
       const condName=ps.cond.name;
       const maxStr=ps.cond.maxW===Infinity?'∞':`${ps.cond.maxW}W / ${ps.cond.maxA}A`;
-      const label=rk==='a'?'Rack A':'Rack B';
-      const col=rk==='a'?'#22d4bf':'#d466ff';
+      const col=rackColor(rk);
       const inch=DEPTH_INCH[r.d]||r.d+'mm';
       html+=`<div class="cfg-rack">
-        <div class="cfg-title" style="color:${col}">${label}</div>
+        <div class="cfg-title" style="color:${col}">${rackLabel(rk)}</div>
         <div class="cfg-row"><span>${r.u}U × ${r.d}mm (${inch}) · ${RW}×${Math.round(r.u*UH)}×${r.d}mm</span><span class="v">${r.items.length} eq</span></div>
         <div class="cfg-row"><span>Power Conditioner</span><span class="v">${condName}</span></div>
         <div class="cfg-row"><span>Consumo</span><span style="${pwCls}">${ps.totalW}W / ${ps.totalA.toFixed(2)}A</span></div>
@@ -761,16 +829,18 @@ function renderRackCfg(){
 }
 
 function updateStats(){
-  const wtA=racks.a.items.reduce((s,i)=>{const e=gEq(i.id);return s+(e?e.wt:0)},0);
-  const wtB=racks.b.items.reduce((s,i)=>{const e=gEq(i.id);return s+(e?e.wt:0)},0);
-  const pwA=calcRackPower(racks.a),pwB=calcRackPower(racks.b);
-  const totalEq=racks.a.items.length+racks.b.items.length;
-  const totalWt=wtA+wtB;
-  const totalW=pwA.totalW+pwB.totalW;
-  const totalA=pwA.totalA+pwB.totalA;
+  const keys=Object.keys(racks);
+  let totalEq=0,totalWt=0,totalW=0,totalA=0;
+  for(const k of keys){
+    const r=racks[k];
+    totalEq+=r.items.length;
+    totalWt+=r.items.reduce((s,i)=>{const e=gEq(i.id);return s+(e?e.wt:0)},0);
+    const pw=calcRackPower(r);
+    totalW+=pw.totalW;totalA+=pw.totalA;
+  }
   
   document.getElementById('stats').innerHTML=`
-    <div class="sr"><span>Total A+B</span><span class="v">${totalEq} eq · ${totalWt.toFixed(1)}kg · ${totalW}W · ${totalA.toFixed(2)}A</span></div>`;
+    <div class="sr"><span>Total ${keys.map(k=>k.toUpperCase()).join('+')}</span><span class="v">${totalEq} eq · ${totalWt.toFixed(1)}kg · ${totalW}W · ${totalA.toFixed(2)}A</span></div>`;
   renderRackCfg();
   renderSummary();
 }
@@ -779,16 +849,24 @@ function renderSummary(){
   const el=document.getElementById('summary');
   let rows='';
   let totalWt=0,totalW=0,totalA=0;
-  const allPlaced=new Set([...racks.a.items.map(i=>i.id),...racks.b.items.map(i=>i.id)]);
+  const allPlaced=new Set();
+  const keys=Object.keys(racks);
+  for(const k of keys){for(const i of racks[k].items)allPlaced.add(i.id)}
 
   for(const eq of EQ){
-    const inA=racks.a.items.find(i=>i.id===eq.id);
-    const inB=racks.b.items.find(i=>i.id===eq.id);
-    const placed=inA||inB;
+    // Find which rack(s) contain this equipment
     let locHTML='';
-    if(inA)locHTML=`<span class="loc a">Rack A · ${inA.slot+1}U</span>`;
-    else if(inB)locHTML=`<span class="loc b">Rack B · ${inB.slot+1}U</span>`;
-    else locHTML=`<span class="loc out">— sin colocar —</span>`;
+    let placed=false;
+    for(const k of keys){
+      const found=racks[k].items.find(i=>i.id===eq.id);
+      if(found){
+        placed=true;
+        const col=rackColor(k);
+        locHTML+=`<span class="loc" style="color:${col}">${rackLabel(k)} · ${found.slot+1}U</span> `;
+        break;
+      }
+    }
+    if(!placed)locHTML=`<span class="loc out">— sin colocar —</span>`;
 
     if(placed){totalWt+=eq.wt;totalW+=eq.watts||0;totalA+=eq.amps||0}
 
@@ -802,11 +880,16 @@ function renderSummary(){
     </tr>`;
   }
 
-  const wtA=racks.a.items.reduce((s,i)=>{const e=gEq(i.id);return s+(e?e.wt:0)},0);
-  const wtB=racks.b.items.reduce((s,i)=>{const e=gEq(i.id);return s+(e?e.wt:0)},0);
-  const psA=getPowerStatus(racks.a),psB=getPowerStatus(racks.b);
-  const pwAcls=psA.over?'pwr-warn':'pwr-ok';
-  const pwBcls=psB.over?'pwr-warn':'pwr-ok';
+  // Build per-rack summary line with colored labels
+  let rackSummaries='';
+  for(const k of keys){
+    const r=racks[k];
+    const col=rackColor(k);
+    const wt=r.items.reduce((s,i)=>{const e=gEq(i.id);return s+(e?e.wt:0)},0);
+    const ps=getPowerStatus(r);
+    const pwCls=ps.over?'pwr-warn':'pwr-ok';
+    rackSummaries+=`<span><span style="color:${col};font-weight:600">${rackLabel(k)}:</span> <strong>${wt.toFixed(1)}kg</strong> <span class="${pwCls}">${ps.totalW}W/${ps.cond.maxW===Infinity?'∞':ps.cond.maxW+'W'}</span></span>`;
+  }
 
   el.innerHTML=`<h3 style="color:var(--t)">Listado total de equipos
     <span style="display:flex;gap:4px">
@@ -817,8 +900,7 @@ function renderSummary(){
       <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
     </span></h3>
     <div class="sum-total">
-      <span>Rack A: <strong style="color:#22d4bf">${racks.a.items.length} eq · ${wtA.toFixed(1)}kg</strong> <span class="${pwAcls}">${psA.totalW}W/${psA.cond.maxW===Infinity?'∞':psA.cond.maxW+'W'}</span></span>
-      <span>Rack B: <strong style="color:#d466ff">${racks.b.items.length} eq · ${wtB.toFixed(1)}kg</strong> <span class="${pwBcls}">${psB.totalW}W/${psB.cond.maxW===Infinity?'∞':psB.cond.maxW+'W'}</span></span>
+      ${rackSummaries}
       <span>Total: <strong style="color:var(--t)">${allPlaced.size} eq · ${totalWt.toFixed(1)}kg · ${totalW}W · ${totalA.toFixed(2)}A</strong></span>
       <span style="color:var(--tm)">Sin colocar: ${EQ.length-allPlaced.size}</span>
     </div>
@@ -844,16 +926,24 @@ function getRackTotals(rack){
 }
 
 function getExportData(){
-  const tA=getRackTotals(racks.a),tB=getRackTotals(racks.b);
-  const eA=getRackExterior(racks.a),eB=getRackExterior(racks.b);
+  const keys=Object.keys(racks);
+  const rackData={};
+  let combinedItems=0,combinedWt=0,combinedW=0,combinedA=0;
+  for(const k of keys){
+    const t=getRackTotals(racks[k]);
+    const e=getRackExterior(racks[k]);
+    rackData[k]={...racks[k],exterior:e,totals:t,items:racks[k].items.map(i=>{const eq=gEq(i.id);return{...i,name:eq?.name,dims:`${eq?.w}×${eq?.d}×${eq?.h}mm`,weight:eq?.wt+'kg',watts:eq?.watts,amps:eq?.amps}})};
+    combinedItems+=t.items;combinedWt+=t.wt;combinedW+=t.watts;combinedA+=t.amps;
+  }
   return{
     project:'LA PLAZUELA',version:'v1',exported:new Date().toISOString(),
     connectorMode:document.getElementById('sel-conn').value,
     sharedConditioner:sharedCondMode,
-    rackA:{...racks.a,exterior:eA,totals:tA,items:racks.a.items.map(i=>{const e=gEq(i.id);return{...i,name:e?.name,dims:`${e?.w}×${e?.d}×${e?.h}mm`,weight:e?.wt+'kg',watts:e?.watts,amps:e?.amps}})},
-    rackB:{...racks.b,exterior:eB,totals:tB,items:racks.b.items.map(i=>{const e=gEq(i.id);return{...i,name:e?.name,dims:`${e?.w}×${e?.d}×${e?.h}mm`,weight:e?.wt+'kg',watts:e?.watts,amps:e?.amps}})},
-    combined:{items:tA.items+tB.items,wt:tA.wt+tB.wt,watts:tA.watts+tB.watts,amps:tA.amps+tB.amps},
-    _raw:{a:JSON.parse(JSON.stringify(racks.a)),b:JSON.parse(JSON.stringify(racks.b)),active:activeRack,sharedCondMode}
+    racks:rackData,
+    combined:{items:combinedItems,wt:combinedWt,watts:combinedW,amps:combinedA},
+    // Legacy compat
+    rackA:rackData.a,rackB:rackData.b,
+    _raw:{...JSON.parse(JSON.stringify(racks)),active:activeRack,sharedCondMode}
   };
 }
 
@@ -866,38 +956,40 @@ function exportJSON(){
 }
 
 function exportHTML(){
-  const psA=getPowerStatus(racks.a),psB=getPowerStatus(racks.b);
-  const tA=getRackTotals(racks.a),tB=getRackTotals(racks.b);
-  const eA=getRackExterior(racks.a),eB=getRackExterior(racks.b);
-  const inchA=DEPTH_INCH[racks.a.d]||'?';
-  const inchB=DEPTH_INCH[racks.b.d]||'?';
-  const combined={items:tA.items+tB.items,wt:tA.wt+tB.wt,watts:tA.watts+tB.watts,amps:tA.amps+tB.amps};
+  const keys=Object.keys(racks);
+  const allTotals={};const allExterior={};const allPower={};
+  let combinedItems=0,combinedWt=0,combinedW=0,combinedA=0;
+  for(const k of keys){
+    allTotals[k]=getRackTotals(racks[k]);
+    allExterior[k]=getRackExterior(racks[k]);
+    allPower[k]=getPowerStatus(racks[k]);
+    combinedItems+=allTotals[k].items;combinedWt+=allTotals[k].wt;
+    combinedW+=allTotals[k].watts;combinedA+=allTotals[k].amps;
+  }
+  const condMode=sharedCondMode?'Compartido':'Por rack';
 
   function rackTopSVG(rack,label,col){
-    const sc=0.55;const rD=rack.d;const gap=0;
+    const sc=0.55;const rD=rack.d;
     const slotH=Math.round(rD*sc);
-    const lblW=26;// space for labels outside rack
+    const lblW=26;
     const rackW=Math.round(RW*sc);
-    const rackH=slotH*rack.u+gap*(rack.u-1);
+    const rackH=slotH*rack.u;
     const svgW=lblW+rackW+10;const svgH=rackH+42;
     const rackX=lblW+2;const rackY=22;
     let svg='<svg width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:transparent">';
     svg+='<text x="'+(svgW/2)+'" y="14" fill="'+col+'" font-size="11" font-family="monospace" text-anchor="middle" font-weight="600">'+label+'</text>';
-    // Rack border (distinct from slots)
     svg+='<rect x="'+rackX+'" y="'+rackY+'" width="'+rackW+'" height="'+rackH+'" fill="#0a0a0f" stroke="'+col+'44" stroke-width="2" rx="4"/>';
-    // Slots with gaps
     for(let s=rack.u-1;s>=0;s--){
       const idx=rack.u-1-s;
-      const y=rackY+idx*(slotH+gap);
+      const y=rackY+idx*slotH;
       svg+='<rect x="'+(rackX+2)+'" y="'+(y+2)+'" width="'+(rackW-4)+'" height="'+(slotH-4)+'" fill="#111118" stroke="#2a2a35" stroke-width="0.5" rx="2"/>';
-      // Label outside rack (to the left)
       svg+='<text x="'+(rackX-4)+'" y="'+(y+slotH/2+3)+'" fill="#555570" font-size="8" font-family="monospace" text-anchor="end">'+(s+1)+'U</text>';
     }
     for(const it of rack.items){
       const eq=gEq(it.id);if(!eq)continue;
       const rd=rotDims(eq,it.rot||0);
       const idx=rack.u-1-it.slot;
-      const slotY=rackY+idx*(slotH+gap);
+      const slotY=rackY+idx*slotH;
       const x=rackX+2+Math.round(it.x*sc);const y=slotY+2+Math.round((it.z||0)*sc);
       const w=Math.round(rd.w*sc);const h=Math.round(rd.d*sc);
       svg+='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+eq.col+'22" stroke="'+eq.col+'88" stroke-width="1" rx="2"/>';
@@ -908,15 +1000,13 @@ function exportHTML(){
   }
 
   function rackSideSVG(rack,label,col){
-    const sS=1.2;const tH=rack.u*UH;
-    const pH=Math.round(tH*sS);const pW=Math.round(rack.d*sS*0.4);
+    const sS=0.55;const tH=rack.u*UH;
+    const pH=Math.round(tH*sS);const pW=Math.round(rack.d*sS);
     const svgH=pH+36;const svgW=pW+8;
     const rackX=4;const rackY=22;
     let svg='<svg width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:transparent">';
     svg+='<text x="'+(svgW/2)+'" y="14" fill="'+col+'" font-size="11" font-family="monospace" text-anchor="middle" font-weight="600">'+label+'</text>';
-    // Rack border
     svg+='<rect x="'+rackX+'" y="'+rackY+'" width="'+pW+'" height="'+pH+'" fill="#0a0a0f" stroke="'+col+'44" stroke-width="2" rx="4"/>';
-    // U division lines with small gaps
     for(let i=1;i<rack.u;i++){
       const y=rackY+Math.round((rack.u-i)*UH*sS);
       svg+='<line x1="'+(rackX+3)+'" y1="'+y+'" x2="'+(rackX+pW-3)+'" y2="'+y+'" stroke="#333" stroke-width="1" stroke-dasharray="3,2"/>';
@@ -927,23 +1017,15 @@ function exportHTML(){
       const isCeil=!!it.ceil;
       let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
       const tp=rackY+Math.round(pH-(bMM+eq.h)*sS);
-      const lp=rackX+Math.round((rack.d-(it.z||0)-rd.d)*sS*0.4);
-      const wp=Math.round(rd.d*sS*0.4);const hp=Math.max(Math.round(eq.h*sS),3);
-      // Trapezoidal profile for shaped items
+      const lp=rackX+Math.round((rack.d-(it.z||0)-rd.d)*sS);
+      const wp=Math.round(rd.d*sS);const hp=Math.max(Math.round(eq.h*sS),3);
       let clipAttr='';
       if(eq.shape){
         const rot=it.rot||0;const connSide=(2+rot/90)%4;
         if(connSide===2||connSide===0){
           const fl=(connSide===0);
-          if(eq.shape==='trap-apollo'){
-            clipAttr=fl
-              ?' clip-path="polygon(0% 0%,50% 0%,50% 40%,100% 40%,100% 100%,0% 100%)"'
-              :' clip-path="polygon(0% 40%,50% 40%,50% 0%,100% 0%,100% 100%,0% 100%)"';
-          }else if(eq.shape==='trap-hotshot'){
-            clipAttr=fl
-              ?' clip-path="polygon(0% 0%,55% 0%,55% 50%,100% 50%,100% 100%,0% 100%)"'
-              :' clip-path="polygon(0% 50%,45% 50%,45% 0%,100% 0%,100% 100%,0% 100%)"';
-          }
+          if(eq.shape==='trap-apollo'){clipAttr=fl?' clip-path="polygon(0% 0%,50% 0%,50% 40%,100% 40%,100% 100%,0% 100%)"':' clip-path="polygon(0% 40%,50% 40%,50% 0%,100% 0%,100% 100%,0% 100%)"';}
+          else if(eq.shape==='trap-hotshot'){clipAttr=fl?' clip-path="polygon(0% 0%,55% 0%,55% 50%,100% 50%,100% 100%,0% 100%)"':' clip-path="polygon(0% 50%,45% 50%,45% 0%,100% 0%,100% 100%,0% 100%)"';}
         }
       }
       svg+='<rect x="'+lp+'" y="'+tp+'" width="'+wp+'" height="'+hp+'" fill="'+eq.col+'33" stroke="'+eq.col+'88" stroke-width="1" rx="1"'+clipAttr+'/>';
@@ -954,28 +1036,25 @@ function exportHTML(){
   }
 
   function rackFrontSVG(rack,label,col){
-    // Same sS as side SVG for consistent height, same 0.4 horizontal factor
-    const sS=1.2;const tH=rack.u*UH;
-    const pH=Math.round(tH*sS);const pW=Math.round(RW*sS*0.4);
+    const sS=0.55;const tH=rack.u*UH;
+    const pH=Math.round(tH*sS);const pW=Math.round(RW*sS);
     const svgH=pH+36;const svgW=pW+8;
     const rackX=4;const rackY=22;
     let svg='<svg width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:transparent">';
     svg+='<text x="'+(svgW/2)+'" y="14" fill="'+col+'" font-size="11" font-family="monospace" text-anchor="middle" font-weight="600">'+label+'</text>';
     svg+='<rect x="'+rackX+'" y="'+rackY+'" width="'+pW+'" height="'+pH+'" fill="#0a0a0f" stroke="'+col+'44" stroke-width="2" rx="4"/>';
-    // U division lines
     for(let i=1;i<rack.u;i++){
       const y=rackY+Math.round((rack.u-i)*UH*sS);
       svg+='<line x1="'+(rackX+3)+'" y1="'+y+'" x2="'+(rackX+pW-3)+'" y2="'+y+'" stroke="#333" stroke-width="1" stroke-dasharray="3,2"/>';
     }
-    // Items — absolute positioned like side view
     for(const it of rack.items){
       const eq=gEq(it.id);if(!eq)continue;
       const rd=rotDims(eq,it.rot||0);
       const isCeil=!!it.ceil;
       let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
       const tp=rackY+Math.round(pH-(bMM+eq.h)*sS);
-      const lp=rackX+Math.round(it.x*sS*0.4);
-      const wp=Math.round(rd.w*sS*0.4);const hp=Math.max(Math.round(eq.h*sS),3);
+      const lp=rackX+Math.round(it.x*sS);
+      const wp=Math.round(rd.w*sS);const hp=Math.max(Math.round(eq.h*sS),3);
       svg+='<rect x="'+lp+'" y="'+tp+'" width="'+wp+'" height="'+hp+'" fill="'+eq.col+'33" stroke="'+eq.col+'88" stroke-width="1" rx="1"/>';
     }
     svg+='</svg>';return svg;
@@ -991,8 +1070,36 @@ function exportHTML(){
     return{rows,wtS,wS,aS};
   }
 
-  const rA=rackRows(racks.a),rB=rackRows(racks.b);
-  const condMode=sharedCondMode?'Compartido A+B':'Por rack';
+  // Build cards for each rack
+  let cardsHTML='';
+  for(const k of keys){
+    const t=allTotals[k];const e=allExterior[k];const col=rackColor(k);
+    const inch=DEPTH_INCH[racks[k].d]||'?';
+    cardsHTML+=`<div class="card"><h3>${rackLabel(k)}</h3><div class="big" style="color:${col}">${t.wt.toFixed(1)}kg</div><div class="sm">${racks[k].u}U · ${dimsIn(e.w,e.h,e.d)} (${inch} prof.)<br>${t.items} eq · <span class="pwr">${t.watts}W · ${t.amps.toFixed(2)}A</span></div></div>`;
+  }
+  cardsHTML+=`<div class="card"><h3>Total combinado</h3><div class="big">${combinedWt.toFixed(1)}kg</div><div class="sm">${combinedItems} eq · <span class="pwr">${combinedW}W · ${combinedA.toFixed(2)}A</span></div></div>`;
+  
+  // Power conditioner card
+  const firstPS=allPower[keys[0]];
+  let condStr='';
+  if(sharedCondMode){condStr=firstPS.cond.name+' (compartido)'}
+  else{condStr=keys.map(k=>allPower[k].cond.name).join(' / ')}
+  cardsHTML+=`<div class="card"><h3>Power Conditioner</h3><div class="med">${condStr}</div><div class="sm">Modo: ${condMode}</div></div>`;
+
+  // Build per-rack sections
+  let racksHTML='';
+  for(const k of keys){
+    const r=racks[k];const t=allTotals[k];const e=allExterior[k];const ps=allPower[k];const col=rackColor(k);
+    const inch=DEPTH_INCH[r.d]||'?';
+    const rd=rackRows(r);
+    racksHTML+=`<div class="sect"><h2 style="color:${col}">${rackLabel(k)}</h2>`+
+      `<div class="dim">${r.u}U · ${dimsIn(e.w,e.h,e.d)} · ${inch} profundidad · ${ps.cond.name}</div>`+
+      `<div class="views">${rackTopSVG(r,'Vista Superior',col)}${rackSideSVG(r,'Lateral',col)}${rackFrontSVG(r,'Frontal',col)}</div>`+
+      `<table><tr><th>Equipo</th><th>W×D×H mm</th><th>Peso</th><th>Watts</th><th>Amps</th><th>Slot</th><th>Ancla</th></tr>${rd.rows}`+
+      `<tr class="trow"><td>Total ${rackLabel(k)}</td><td></td><td>${rd.wtS.toFixed(1)}kg</td><td>${rd.wS}W</td><td>${rd.aS.toFixed(2)}A</td><td colspan="2">${t.items} eq</td></tr></table></div>`;
+  }
+
+  const presetTitle=activePresetName||'Sin nombre';
 
   const html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>LA PLAZUELA Rack Report '+TS()+'</title>'+
 '<style>'+
@@ -1004,14 +1111,14 @@ function exportHTML(){
 ".header h1{font-family:'DM Sans',sans-serif;font-size:32px;font-weight:700;color:#fff;letter-spacing:1px}"+
 '.header .sub{font-size:14px;color:#555570;margin-top:2px}'+
 '.header .date{font-size:10px;color:#333348;margin-top:6px}'+
-'.cards{display:flex;gap:14px;margin:24px 0;flex-wrap:wrap}'+
+".preset-title{font-family:'DM Sans',sans-serif;font-size:22px;font-weight:600;color:#e8e8f0;margin:24px 0 8px;padding-top:16px;border-top:1px solid #1e1e28}"+
+'.cards{display:flex;gap:14px;margin:16px 0;flex-wrap:wrap}'+
 '.card{background:#111115;border:1px solid #1e1e28;border-radius:8px;padding:16px 20px;flex:1;min-width:160px}'+
 ".card h3{font-size:9px;color:#555570;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;font-weight:600}"+
 '.card .big{font-size:26px;font-weight:700;line-height:1.1}'+
 '.card .med{font-size:15px;font-weight:600;margin-top:3px}'+
 '.card .sm{font-size:10px;color:#555570;margin-top:5px;line-height:1.6}'+
 '.pwr{color:#ff6680}.pwr-w{color:#ff5c4a;font-weight:700}'+
-'.rack-a{color:#22d4bf}.rack-b{color:#d466ff}'+
 ".sect{margin:32px 0 16px}"+
 ".sect h2{font-family:'DM Sans',sans-serif;font-size:20px;font-weight:600;color:#fff;margin-bottom:3px}"+
 '.sect .dim{font-size:11px;color:#555570;margin-bottom:14px}'+
@@ -1032,27 +1139,11 @@ function exportHTML(){
 '<div class="date">'+new Date().toLocaleString('es-ES',{weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})+' · Rack Designer v1</div>'+
 '</div>'+
 
-'<div class="cards">'+
-'<div class="card"><h3>Rack A</h3><div class="big rack-a">'+tA.items+' eq</div><div class="sm">'+racks.a.u+'U · '+dimsIn(eA.w,eA.h,eA.d)+' ('+inchA+' prof.)<br>'+tA.wt.toFixed(1)+'kg · <span class="pwr">'+tA.watts+'W · '+tA.amps.toFixed(2)+'A</span></div></div>'+
-'<div class="card"><h3>Rack B</h3><div class="big rack-b">'+tB.items+' eq</div><div class="sm">'+racks.b.u+'U · '+dimsIn(eB.w,eB.h,eB.d)+' ('+inchB+' prof.)<br>'+tB.wt.toFixed(1)+'kg · <span class="pwr">'+tB.watts+'W · '+tB.amps.toFixed(2)+'A</span></div></div>'+
-'<div class="card"><h3>Total combinado</h3><div class="big">'+combined.items+' eq</div><div class="sm">'+combined.wt.toFixed(1)+'kg · <span class="pwr">'+combined.watts+'W · '+combined.amps.toFixed(2)+'A</span></div></div>'+
-'<div class="card"><h3>Power Conditioner</h3><div class="med">'+(sharedCondMode?psA.cond.name+' (compartido)':psA.cond.name+' / '+psB.cond.name)+'</div><div class="sm">Modo: '+condMode+'<br>'+
-(sharedCondMode
-  ?'Total: <span class="'+(psA.over?'pwr-w':'pwr')+'">'+combined.watts+'W / '+combined.amps.toFixed(2)+'A</span> · Lím: '+(psA.cond.maxW===Infinity?'∞':psA.cond.maxW+'W')
-  :'A: <span class="'+(psA.over?'pwr-w':'pwr')+'">'+psA.totalW+'W/'+(psA.cond.maxW===Infinity?'∞':psA.cond.maxW+'W')+'</span> · B: <span class="'+(psB.over?'pwr-w':'pwr')+'">'+psB.totalW+'W/'+(psB.cond.maxW===Infinity?'∞':psB.cond.maxW+'W')+'</span>')+
-'</div></div></div>'+
+'<div class="preset-title">'+presetTitle+'</div>'+
 
-'<div class="sect"><h2 style="color:#22d4bf">Rack A</h2>'+
-'<div class="dim">'+racks.a.u+'U · '+dimsIn(eA.w,eA.h,eA.d)+' · '+inchA+' profundidad · '+psA.cond.name+'</div>'+
-'<div class="views">'+rackTopSVG(racks.a,'Vista Superior','#22d4bf')+rackSideSVG(racks.a,'Lateral','#22d4bf')+rackFrontSVG(racks.a,'Frontal','#22d4bf')+'</div>'+
-'<table><tr><th>Equipo</th><th>W×D×H mm</th><th>Peso</th><th>Watts</th><th>Amps</th><th>Slot</th><th>Ancla</th></tr>'+rA.rows+
-'<tr class="trow"><td>Total Rack A</td><td></td><td>'+rA.wtS.toFixed(1)+'kg</td><td>'+rA.wS+'W</td><td>'+rA.aS.toFixed(2)+'A</td><td colspan="2">'+tA.items+' eq</td></tr></table></div>'+
+'<div class="cards">'+cardsHTML+'</div>'+
 
-'<div class="sect"><h2 style="color:#d466ff">Rack B</h2>'+
-'<div class="dim">'+racks.b.u+'U · '+dimsIn(eB.w,eB.h,eB.d)+' · '+inchB+' profundidad · '+psB.cond.name+'</div>'+
-'<div class="views">'+rackTopSVG(racks.b,'Vista Superior','#d466ff')+rackSideSVG(racks.b,'Lateral','#d466ff')+rackFrontSVG(racks.b,'Frontal','#d466ff')+'</div>'+
-'<table><tr><th>Equipo</th><th>W×D×H mm</th><th>Peso</th><th>Watts</th><th>Amps</th><th>Slot</th><th>Ancla</th></tr>'+rB.rows+
-'<tr class="trow"><td>Total Rack B</td><td></td><td>'+rB.wtS.toFixed(1)+'kg</td><td>'+rB.wS+'W</td><td>'+rB.aS.toFixed(2)+'A</td><td colspan="2">'+tB.items+' eq</td></tr></table></div>'+
+racksHTML+
 
 '<div class="footer"><span>LA PLAZUELA · Rack Designer v1</span><span>'+new Date().toLocaleDateString('es-ES')+'</span></div>'+
 '</div></body></html>';
@@ -1123,31 +1214,37 @@ function importJSON(evt){
   reader.onload=e=>{
     try{
       const data=JSON.parse(e.target.result);
-      // Support both formats: _raw (our export) or direct a/b structure (preset-like)
       let imported=null;
       if(data._raw){
         imported=data._raw;
       }else if(data.rackA&&data.rackA.items){
-        // Try to reconstruct from export format
         imported={a:data.rackA,b:data.rackB,active:'a'};
-      }else if(data.a&&data.b){
+      }else if(data.a){
         imported=data;
       }
 
-      if(!imported||!imported.a||!imported.b){
+      if(!imported){
         msg.className='msg warn';msg.textContent='Formato no reconocido';return;
       }
 
-      racks.a=imported.a;racks.b=imported.b;
-      if(!racks.a.conditioner)racks.a.conditioner='none';
-      if(!racks.b.conditioner)racks.b.conditioner='none';
-      // Restore shared cond mode if present
+      // Extract rack keys (single lowercase letters with items arrays)
+      const rackKeys=Object.keys(imported).filter(k=>k.length===1&&k>='a'&&k<='z'&&imported[k]&&typeof imported[k]==='object'&&Array.isArray(imported[k].items));
+      if(rackKeys.length===0){
+        msg.className='msg warn';msg.textContent='No se encontraron racks';return;
+      }
+
+      racks={};
+      for(const k of rackKeys){
+        racks[k]=imported[k];
+        if(!racks[k].conditioner)racks[k].conditioner='none';
+      }
+      
       if(imported.sharedCondMode!==undefined){
         sharedCondMode=!!imported.sharedCondMode;
         document.getElementById('sel-cond-mode').value=sharedCondMode?'shared':'per-rack';
       }
       // Normalize items
-      [racks.a,racks.b].forEach(r=>{
+      for(const r of Object.values(racks)){
         if(!r.items)r.items=[];
         r.items.forEach(i=>{
           if(!i.rot)i.rot=0;
@@ -1155,12 +1252,12 @@ function importJSON(evt){
           if(i.ceil===undefined)i.ceil=false;
           if(!i.iid)i.iid=i.id+'_'+Math.random().toString(36).slice(2,8);
         });
-        // Filter out items whose IDs don't match any equipment
         r.items=r.items.filter(i=>gEq(i.id));
-      });
+      }
 
-      switchRack(imported.active||'a');
-      msg.className='msg ok';msg.textContent=`✓ Importado: A=${racks.a.items.length} B=${racks.b.items.length}`;
+      const rKeys=Object.keys(racks);
+      switchRack(imported.active||rKeys[0]);
+      msg.className='msg ok';msg.textContent=`✓ Importado: ${rKeys.map(k=>k.toUpperCase()+':'+racks[k].items.length).join(' ')}`;
     }catch(err){
       msg.className='msg warn';msg.textContent='Error al leer JSON';
     }
@@ -1218,6 +1315,7 @@ document.querySelectorAll('.sb-drag').forEach(handle=>{
 });
 
 updateConnOpacityVis();
+renderRackTabs();
 rebuild();
 
 // ===== SUPABASE =====
@@ -1249,12 +1347,14 @@ async function savePreset(){
   if(!n){m.className='pmsg err';m.textContent='Nombre vacío';return}
   m.className='pmsg ld';m.textContent='Guardando...';
   try{
+    const stateObj={...JSON.parse(JSON.stringify(racks)),active:activeRack,
+      connMode:document.getElementById('sel-conn').value,
+      sharedCondMode:sharedCondMode};
     const data={name:n,rack_u:cur().u,rack_depth:cur().d,connector_mm:0,
-      items:JSON.stringify({a:racks.a,b:racks.b,active:activeRack,
-        connMode:document.getElementById('sel-conn').value,
-        sharedCondMode:sharedCondMode}),
+      items:JSON.stringify(stateObj),
       updated_at:new Date().toISOString()};
     await sbFetch('rack_presets',{method:'POST',body:JSON.stringify(data)});
+    activePresetName=n;
     m.className='pmsg ok';m.textContent='✓ '+n;
     document.getElementById('pname').value='';loadPresets();
   }catch(e){m.className='pmsg err';m.textContent='Error: '+e.message}
@@ -1275,7 +1375,8 @@ function renderPresetList(){
   el.innerHTML=presetCache.map((p,i)=>{
     let info='';
     try{const pd=typeof p.items==='string'?JSON.parse(p.items):p.items;
-      if(pd.a)info=`A:${pd.a.items.length} B:${pd.b.items.length}`;
+      const rackKeys=Object.keys(pd).filter(k=>k.length===1&&k>='a'&&k<='z'&&pd[k]&&pd[k].items);
+      if(rackKeys.length>0)info=rackKeys.map(k=>k.toUpperCase()+':'+pd[k].items.length).join(' ');
       else info=`${pd.length||0}eq`;
     }catch(e){info='?'}
     return`<div class="pe" data-pid="${p.id}" data-idx="${i}" draggable="true"
@@ -1373,13 +1474,15 @@ function updatePreset(id){
     const m=document.getElementById('pmsg');
     m.className='pmsg ld';m.textContent='Actualizando...';
     try{
+      const stateObj={...JSON.parse(JSON.stringify(racks)),active:activeRack,
+        connMode:document.getElementById('sel-conn').value,
+        sharedCondMode:sharedCondMode};
       const data={
         rack_u:cur().u,rack_depth:cur().d,connector_mm:0,
-        items:JSON.stringify({a:racks.a,b:racks.b,active:activeRack,
-          connMode:document.getElementById('sel-conn').value,
-          sharedCondMode:sharedCondMode}),
+        items:JSON.stringify(stateObj),
         updated_at:new Date().toISOString()};
       await sbFetch('rack_presets?id=eq.'+id,{method:'PATCH',body:JSON.stringify(data)});
+      activePresetName=p.name;
       m.className='pmsg ok';m.textContent='✓ '+p.name+' actualizado';
       loadPresets();
     }catch(e){m.className='pmsg err';m.textContent='Error'}
@@ -1402,13 +1505,27 @@ async function applyPreset(id){
     const d=await sbFetch('rack_presets?id=eq.'+id+'&select=*');
     if(!d||!d.length)throw new Error('');
     const p=d[0];
+    activePresetName=p.name; // Track for export
     const pd=typeof p.items==='string'?JSON.parse(p.items):p.items;
-    if(pd.a&&pd.b){
-      racks.a=pd.a;racks.b=pd.b;
-      if(!racks.a.conditioner)racks.a.conditioner='none';
-      if(!racks.b.conditioner)racks.b.conditioner='none';
-      racks.a.items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false;if(!i.iid)i.iid=i.id+'_'+Math.random().toString(36).slice(2,8)});
-      racks.b.items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false;if(!i.iid)i.iid=i.id+'_'+Math.random().toString(36).slice(2,8)});
+    if(pd.a){
+      // Reconstruct racks from preset — support dynamic rack keys
+      const rackKeys=Object.keys(pd).filter(k=>k.length===1&&k>='a'&&k<='z'&&pd[k]&&typeof pd[k]==='object'&&pd[k].items!==undefined);
+      if(rackKeys.length>0){
+        // Clear existing racks and load from preset
+        racks={};
+        for(const k of rackKeys){
+          racks[k]=pd[k];
+          if(!racks[k].conditioner)racks[k].conditioner='none';
+          racks[k].items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false;if(!i.iid)i.iid=i.id+'_'+Math.random().toString(36).slice(2,8)});
+        }
+      }else{
+        // Legacy format with just a,b
+        racks={a:pd.a||{u:2,d:228,conditioner:'none',items:[]},b:pd.b||{u:2,d:228,conditioner:'none',items:[]}};
+        for(const k of Object.keys(racks)){
+          if(!racks[k].conditioner)racks[k].conditioner='none';
+          racks[k].items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false;if(!i.iid)i.iid=i.id+'_'+Math.random().toString(36).slice(2,8)});
+        }
+      }
       // Restore connector mode
       if(pd.connMode){document.getElementById('sel-conn').value=pd.connMode}
       // Restore shared cond mode
@@ -1416,7 +1533,7 @@ async function applyPreset(id){
         sharedCondMode=!!pd.sharedCondMode;
         document.getElementById('sel-cond-mode').value=sharedCondMode?'shared':'per-rack';
       }
-      switchRack(pd.active||'a');
+      switchRack(pd.active||Object.keys(racks)[0]);
     }else{
       cur().u=p.rack_u;cur().d=p.rack_depth;
       cur().items=Array.isArray(pd)?pd:[];
