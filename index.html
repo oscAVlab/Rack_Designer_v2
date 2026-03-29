@@ -115,7 +115,7 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
 
 .view-col{display:flex;flex-direction:column;align-items:center}
 .view-label{font-size:12px;color:var(--tm);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;font-weight:500}
-.rack-box{position:relative;border:2px solid var(--brdh);border-radius:5px;background:var(--s1);display:flex;flex-direction:column;gap:3px;padding:3px}
+.rack-box{position:relative;border:2px solid var(--brdh);border-radius:5px;background:var(--s1);display:flex;flex-direction:column;gap:10px;padding:6px}
 .rack-lbl{text-align:center;font-size:11px;color:var(--tm);margin:10px 0;letter-spacing:1px}
 .slot-row{display:flex;align-items:center;gap:0}
 .slot-lbl-out{font-size:10px;color:var(--tm);font-weight:600;width:28px;text-align:right;padding-right:5px;flex-shrink:0;user-select:none}
@@ -170,22 +170,36 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
 
 /* ===== RESPONSIVE ===== */
 @media(max-width:1200px){
-  .workspace{gap:40px;padding:8px}
+  .workspace{gap:30px;padding:8px}
 }
 @media(max-width:900px){
-  .app{flex-direction:column}
-  .sidebar{width:100%!important;max-width:100%!important;min-width:0!important;max-height:40vh;border-right:none;border-bottom:1px solid var(--brd)}
+  .app{flex-direction:column;height:auto;overflow:auto}
+  .sidebar{width:100%!important;max-width:100%!important;min-width:0!important;max-height:none;height:auto;border-right:none;border-bottom:1px solid var(--brd)}
   .sidebar-resize{display:none}
-  .main{flex:1;min-height:0}
-  .workspace{gap:20px;padding:6px;justify-content:flex-start}
+  .sb-section.flex-grow{flex:none}
+  .sb-section-body{max-height:200px}
+  .main{flex:none;min-height:0}
+  .workspace{gap:16px;padding:8px;justify-content:flex-start;flex-direction:column;align-items:center;overflow:visible;flex:none;height:auto}
+  .view-col{width:100%;align-items:center}
+  .rack-box{max-width:100%;overflow-x:auto}
+  .summary-wrap{height:auto!important;max-height:300px}
+  body{height:auto;overflow:auto}
 }
 @media(max-width:600px){
-  .toolbar{gap:3px;padding:4px 6px}
-  .toolbar label{font-size:10px}
-  .toolbar select,.toolbar button{font-size:10px;padding:2px 5px}
-  .legend-bar{font-size:10px;gap:6px;padding:3px 6px}
-  .rack-tab{padding:4px 10px;font-size:11px}
-  .sum-table{font-size:10px}
+  .toolbar{gap:3px;padding:4px 6px;flex-wrap:wrap}
+  .toolbar label{font-size:9px}
+  .toolbar select,.toolbar button{font-size:9px;padding:2px 4px}
+  .legend-bar{font-size:9px;gap:4px;padding:3px 6px}
+  .rack-tab{padding:3px 8px;font-size:10px}
+  .sum-table{font-size:9px}
+  .sum-table th{font-size:8px;padding:2px 4px}
+  .sum-table td{padding:2px 4px}
+  .eq-btn .ed{font-size:8px}
+  .workspace{padding:4px;gap:12px}
+  .view-label{font-size:10px}
+  .sidebar-hdr p{font-size:8px}
+  .pi .pn{font-size:8px}
+  .pi .pd{font-size:7px}
 }
 </style>
 </head>
@@ -392,7 +406,7 @@ function renderList(){
       h+=`<button class="eq-btn${s?' selected':''}${u?' used':''}" onclick="selEq('${e.id}')"${u?' disabled':''}>
         <div class="ec" style="background:${e.col}"></div>
         <div class="en">${e.name}</div>
-        <div class="ed">${e.w}×${e.d}×${e.h}mm · ${e.wt}kg${pwInfo}</div></button>`;
+        <div class="ed">${e.w}×${e.d}×${e.h}mm (${mmIn(e.w)}×${mmIn(e.d)}×${mmIn(e.h)}) · ${e.wt}kg${pwInfo}</div></button>`;
     }
   }
   document.getElementById('eq-list').innerHTML=h;
@@ -493,11 +507,41 @@ function renderWorkspace(){
     sideHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col};${extraStyle}"><span>${eq.name.split(' ')[0]}</span></div>`;
   }
   sideHTML+=`</div>
-    <div style="font-size:11px;color:var(--tm);margin-top:8px;text-align:center">
-      ${r.u}U × ${rD}mm<br>${RW}×${Math.round(r.u*UH)}×${rD}mm
+    <div style="font-size:10px;color:var(--tm);margin-top:8px;text-align:center">
+      ${r.u}U × ${rD}mm (${DEPTH_INCH[rD]||mmIn(rD)})<br>${dimsIn(RW,Math.round(r.u*UH),rD)}
     </div></div>`;
 
-  ws.innerHTML=topHTML+sideHTML;
+  // Build front view — 1U at bottom, higher U above (natural rack orientation)
+  const fSc=1.8;
+  const fW=Math.round(RW*fSc*0.25);const fUH=Math.round(UH*fSc);const fGap=6;
+  const fH=fUH*r.u+fGap*(r.u-1);
+  let frontHTML=`<div class="view-col"><div class="view-label">Vista frontal</div>
+    <div style="display:flex;flex-direction:column;gap:${fGap}px;border:2px solid var(--brdh);border-radius:5px;background:var(--s1);padding:6px">`;
+  // Render from highest U at top to 1U at bottom
+  for(let s=r.u-1;s>=0;s--){
+    let itemsHTML='';
+    for(const it of r.items){
+      if(it.slot!==s)continue;
+      const eq=gEq(it.id);if(!eq)continue;
+      const rd=rotDims(eq,it.rot||0);
+      const iw=Math.round(rd.w*fSc*0.25);const ih=Math.round(eq.h*fSc);
+      const ix=Math.round(it.x*fSc*0.25);
+      const isCeil=!!it.ceil;
+      // Front view: bottom of div = floor of slot, top = ceiling
+      const iy=isCeil?0:(fUH-ih);
+      itemsHTML+=`<div style="position:absolute;left:${ix}px;top:${iy}px;width:${iw}px;height:${ih}px;background:${eq.col}20;border:1px solid ${eq.col}80;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7px;color:${eq.col};overflow:hidden"><span style="pointer-events:none">${eq.name.split(' ')[0]}</span></div>`;
+    }
+    frontHTML+=`<div style="display:flex;align-items:center;gap:0">
+      <span style="font-size:9px;color:var(--tm);width:24px;text-align:right;padding-right:4px;flex-shrink:0">${s+1}U</span>
+      <div style="position:relative;width:${fW}px;height:${fUH}px;background:#111118;border:1px solid var(--brd);border-radius:2px">${itemsHTML}</div>
+    </div>`;
+  }
+  frontHTML+=`</div>
+    <div style="font-size:10px;color:var(--tm);margin-top:8px;text-align:center">
+      ${RW}mm (${mmIn(RW)}) × ${Math.round(r.u*UH)}mm (${mmIn(Math.round(r.u*UH))})
+    </div></div>`;
+
+  ws.innerHTML=topHTML+sideHTML+frontHTML;
 
   // Attach events to slots
   document.querySelectorAll('.slot').forEach(sl=>{
@@ -572,7 +616,7 @@ function placeVis(it){
   const body=document.createElement('div');
   body.className='pi-body';
   body.style.cssText=`background:${eq.col}20;border:1px solid ${eq.col}80;color:${eq.col}`;
-  body.innerHTML=`<span class="pn">${eq.name}</span><span class="pd">${rd.w}×${rd.d}</span>`;
+  body.innerHTML=`<span class="pn">${eq.name}</span><span class="pd">${rd.w}×${rd.d} (${mmIn(rd.w)}×${mmIn(rd.d)})</span>`;
   div.appendChild(body);
 
   const cv=it.showConn!==false;
@@ -627,6 +671,8 @@ function togSection(id){
 
 // ===== RACK CONFIG PANEL =====
 const DEPTH_INCH={228:'9"',254:'10"',305:'12"',330:'13"',356:'14"'};
+function mmIn(mm){return(mm/25.4).toFixed(1)+'"'}
+function dimsIn(w,d,h){return`${w}×${d}×${h}mm (${mmIn(w)}×${mmIn(d)}×${mmIn(h)})`}
 
 function renderRackCfg(){
   const el=document.getElementById('rack-cfg');
@@ -650,7 +696,7 @@ function renderRackCfg(){
       const inch=DEPTH_INCH[r.d]||r.d+'mm';
       html+=`<div class="cfg-rack">
         <div class="cfg-title" style="color:${col}">${label}</div>
-        <div class="cfg-row"><span>${r.u}U × ${r.d}mm / ${inch}</span><span class="v">${r.items.length} eq</span></div>
+        <div class="cfg-row"><span>${r.u}U × ${r.d}mm (${inch}) · ${RW}×${Math.round(r.u*UH)}×${r.d}mm</span><span class="v">${r.items.length} eq</span></div>
       </div>`;
     }
     html+=`<div class="cfg-rack" style="border-top:1px solid var(--brd);padding-top:4px;margin-top:2px">
@@ -671,7 +717,7 @@ function renderRackCfg(){
       const inch=DEPTH_INCH[r.d]||r.d+'mm';
       html+=`<div class="cfg-rack">
         <div class="cfg-title" style="color:${col}">${label}</div>
-        <div class="cfg-row"><span>${r.u}U × ${r.d}mm / ${inch}</span><span class="v">${r.items.length} eq</span></div>
+        <div class="cfg-row"><span>${r.u}U × ${r.d}mm (${inch}) · ${RW}×${Math.round(r.u*UH)}×${r.d}mm</span><span class="v">${r.items.length} eq</span></div>
         <div class="cfg-row"><span>Power Conditioner</span><span class="v">${condName}</span></div>
         <div class="cfg-row"><span>Consumo</span><span style="${pwCls}">${ps.totalW}W / ${ps.totalA.toFixed(2)}A</span></div>
         <div class="cfg-row"><span>Límite</span><span class="v">${maxStr}</span></div>
@@ -715,7 +761,7 @@ function renderSummary(){
 
     rows+=`<tr style="opacity:${placed?1:0.4}">
       <td><span class="dot" style="background:${eq.col}"></span>${eq.name}</td>
-      <td>${eq.w}×${eq.d}×${eq.h}</td>
+      <td>${eq.w}×${eq.d}×${eq.h} <span style="color:var(--tm)">(${mmIn(eq.w)}×${mmIn(eq.d)}×${mmIn(eq.h)})</span></td>
       <td>${eq.wt}kg</td>
       <td>${eq.watts||0}W</td>
       <td>${(eq.amps||0).toFixed(2)}A</td>
@@ -795,7 +841,7 @@ function exportHTML(){
   const combined={items:tA.items+tB.items,wt:tA.wt+tB.wt,watts:tA.watts+tB.watts,amps:tA.amps+tB.amps};
 
   function rackTopSVG(rack,label,col){
-    const sc=0.55;const rD=rack.d;const gap=4;
+    const sc=0.55;const rD=rack.d;const gap=10;
     const slotH=Math.round(rD*sc);
     const lblW=26;// space for labels outside rack
     const rackW=Math.round(RW*sc);
@@ -850,10 +896,54 @@ function exportHTML(){
       const tp=rackY+Math.round(pH-(bMM+eq.h)*sS);
       const lp=rackX+Math.round((rack.d-(it.z||0)-rd.d)*sS*0.4);
       const wp=Math.round(rd.d*sS*0.4);const hp=Math.max(Math.round(eq.h*sS),3);
-      svg+='<rect x="'+lp+'" y="'+tp+'" width="'+wp+'" height="'+hp+'" fill="'+eq.col+'33" stroke="'+eq.col+'88" stroke-width="1" rx="1"/>';
+      // Trapezoidal profile for shaped items
+      let clipAttr='';
+      if(eq.shape){
+        const rot=it.rot||0;const connSide=(2+rot/90)%4;
+        if(connSide===2||connSide===0){
+          const fl=(connSide===0);
+          if(eq.shape==='trap-apollo'){
+            clipAttr=fl
+              ?' clip-path="polygon(0% 0%,50% 0%,50% 40%,100% 40%,100% 100%,0% 100%)"'
+              :' clip-path="polygon(0% 40%,50% 40%,50% 0%,100% 0%,100% 100%,0% 100%)"';
+          }else if(eq.shape==='trap-hotshot'){
+            clipAttr=fl
+              ?' clip-path="polygon(0% 0%,55% 0%,55% 50%,100% 50%,100% 100%,0% 100%)"'
+              :' clip-path="polygon(0% 50%,45% 50%,45% 0%,100% 0%,100% 100%,0% 100%)"';
+          }
+        }
+      }
+      svg+='<rect x="'+lp+'" y="'+tp+'" width="'+wp+'" height="'+hp+'" fill="'+eq.col+'33" stroke="'+eq.col+'88" stroke-width="1" rx="1"'+clipAttr+'/>';
     }
     svg+='<text x="'+(rackX+2)+'" y="'+(svgH-3)+'" fill="#444" font-size="7" font-family="monospace">frente</text>';
     svg+='<text x="'+(rackX+pW-2)+'" y="'+(svgH-3)+'" fill="#444" font-size="7" font-family="monospace" text-anchor="end">atrás</text>';
+    svg+='</svg>';return svg;
+  }
+
+  function rackFrontSVG(rack,label,col){
+    const fSc=1.0;const fGap=6;
+    const fW=Math.round(RW*fSc*0.2);const fUH=Math.round(UH*fSc);
+    const fH=fUH*rack.u+fGap*(rack.u-1);
+    const lblW=22;const svgW=lblW+fW+8;const svgH=fH+36;
+    const rackX=lblW+2;const rackY=22;
+    let svg='<svg width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:transparent">';
+    svg+='<text x="'+(svgW/2)+'" y="14" fill="'+col+'" font-size="11" font-family="monospace" text-anchor="middle" font-weight="600">'+label+'</text>';
+    svg+='<rect x="'+rackX+'" y="'+rackY+'" width="'+fW+'" height="'+fH+'" fill="#0a0a0f" stroke="'+col+'44" stroke-width="2" rx="4"/>';
+    for(let s=rack.u-1;s>=0;s--){
+      const idx=rack.u-1-s;
+      const y=rackY+idx*(fUH+fGap);
+      svg+='<rect x="'+(rackX+2)+'" y="'+(y+1)+'" width="'+(fW-4)+'" height="'+(fUH-2)+'" fill="#111118" stroke="#2a2a35" stroke-width="0.5" rx="1"/>';
+      svg+='<text x="'+(rackX-3)+'" y="'+(y+fUH/2+3)+'" fill="#555570" font-size="7" font-family="monospace" text-anchor="end">'+(s+1)+'U</text>';
+      for(const it of rack.items){
+        if(it.slot!==s)continue;
+        const eq=gEq(it.id);if(!eq)continue;
+        const rd=rotDims(eq,it.rot||0);
+        const iw=Math.round(rd.w*fSc*0.2);const ih=Math.round(eq.h*fSc);
+        const ix=rackX+2+Math.round(it.x*fSc*0.2);
+        const iy=it.ceil?(y+1):(y+fUH-ih-1);
+        svg+='<rect x="'+ix+'" y="'+iy+'" width="'+iw+'" height="'+ih+'" fill="'+eq.col+'22" stroke="'+eq.col+'88" stroke-width="1" rx="1"/>';
+      }
+    }
     svg+='</svg>';return svg;
   }
 
@@ -862,7 +952,7 @@ function exportHTML(){
     const rows=rack.items.map(it=>{
       const eq=gEq(it.id);if(!eq)return'';
       wtS+=eq.wt;wS+=eq.watts||0;aS+=eq.amps||0;
-      return'<tr><td><span class="dot" style="background:'+eq.col+'"></span>'+eq.name+'</td><td>'+eq.w+'×'+eq.d+'×'+eq.h+'</td><td>'+eq.wt+'kg</td><td>'+( eq.watts||0)+'W</td><td>'+(eq.amps||0).toFixed(2)+'A</td><td>'+(it.slot+1)+'U</td><td>'+(it.ceil?'Techo':'Piso')+'</td></tr>';
+      return'<tr><td><span class="dot" style="background:'+eq.col+'"></span>'+eq.name+'</td><td>'+dimsIn(eq.w,eq.d,eq.h)+'</td><td>'+eq.wt+'kg</td><td>'+(eq.watts||0)+'W</td><td>'+(eq.amps||0).toFixed(2)+'A</td><td>'+(it.slot+1)+'U</td><td>'+(it.ceil?'Techo':'Piso')+'</td></tr>';
     }).join('');
     return{rows,wtS,wS,aS};
   }
@@ -909,9 +999,9 @@ function exportHTML(){
 '</div>'+
 
 '<div class="cards">'+
-'<div class="card"><h3>Rack A</h3><div class="big rack-a">'+tA.items+' eq</div><div class="sm">'+racks.a.u+'U · '+eA.w+'×'+eA.h+'×'+eA.d+'mm ('+inchA+' prof.)<br>'+tA.wt.toFixed(1)+'kg · <span class="pwr">'+tA.watts+'W · '+tA.amps.toFixed(2)+'A</span></div></div>'+
-'<div class="card"><h3>Rack B</h3><div class="big rack-b">'+tB.items+' eq</div><div class="sm">'+racks.b.u+'U · '+eB.w+'×'+eB.h+'×'+eB.d+'mm ('+inchB+' prof.)<br>'+tB.wt.toFixed(1)+'kg · <span class="pwr">'+tB.watts+'W · '+tB.amps.toFixed(2)+'A</span></div></div>'+
-'<div class="card"><h3>Sistema</h3><div class="big">'+combined.items+' <span style="font-size:13px;color:#555570">/ '+EQ.length+'</span></div><div class="sm">'+combined.wt.toFixed(1)+'kg · <span class="pwr">'+combined.watts+'W · '+combined.amps.toFixed(2)+'A</span><br>Sin colocar: '+(EQ.length-combined.items)+'</div></div>'+
+'<div class="card"><h3>Rack A</h3><div class="big rack-a">'+tA.items+' eq</div><div class="sm">'+racks.a.u+'U · '+dimsIn(eA.w,eA.h,eA.d)+' ('+inchA+' prof.)<br>'+tA.wt.toFixed(1)+'kg · <span class="pwr">'+tA.watts+'W · '+tA.amps.toFixed(2)+'A</span></div></div>'+
+'<div class="card"><h3>Rack B</h3><div class="big rack-b">'+tB.items+' eq</div><div class="sm">'+racks.b.u+'U · '+dimsIn(eB.w,eB.h,eB.d)+' ('+inchB+' prof.)<br>'+tB.wt.toFixed(1)+'kg · <span class="pwr">'+tB.watts+'W · '+tB.amps.toFixed(2)+'A</span></div></div>'+
+'<div class="card"><h3>Total combinado</h3><div class="big">'+combined.items+' eq</div><div class="sm">'+combined.wt.toFixed(1)+'kg · <span class="pwr">'+combined.watts+'W · '+combined.amps.toFixed(2)+'A</span></div></div>'+
 '<div class="card"><h3>Power Conditioner</h3><div class="med">'+(sharedCondMode?psA.cond.name+' (compartido)':psA.cond.name+' / '+psB.cond.name)+'</div><div class="sm">Modo: '+condMode+'<br>'+
 (sharedCondMode
   ?'Total: <span class="'+(psA.over?'pwr-w':'pwr')+'">'+combined.watts+'W / '+combined.amps.toFixed(2)+'A</span> · Lím: '+(psA.cond.maxW===Infinity?'∞':psA.cond.maxW+'W')
@@ -919,21 +1009,16 @@ function exportHTML(){
 '</div></div></div>'+
 
 '<div class="sect"><h2 style="color:#22d4bf">Rack A</h2>'+
-'<div class="dim">'+racks.a.u+'U · '+eA.w+' × '+eA.h+' × '+eA.d+' mm · '+inchA+' profundidad · '+psA.cond.name+'</div>'+
-'<div class="views">'+rackTopSVG(racks.a,'Vista Superior','#22d4bf')+rackSideSVG(racks.a,'Lateral','#22d4bf')+'</div>'+
+'<div class="dim">'+racks.a.u+'U · '+dimsIn(eA.w,eA.h,eA.d)+' · '+inchA+' profundidad · '+psA.cond.name+'</div>'+
+'<div class="views">'+rackTopSVG(racks.a,'Vista Superior','#22d4bf')+rackSideSVG(racks.a,'Lateral','#22d4bf')+rackFrontSVG(racks.a,'Frontal','#22d4bf')+'</div>'+
 '<table><tr><th>Equipo</th><th>W×D×H mm</th><th>Peso</th><th>Watts</th><th>Amps</th><th>Slot</th><th>Ancla</th></tr>'+rA.rows+
 '<tr class="trow"><td>Total Rack A</td><td></td><td>'+rA.wtS.toFixed(1)+'kg</td><td>'+rA.wS+'W</td><td>'+rA.aS.toFixed(2)+'A</td><td colspan="2">'+tA.items+' eq</td></tr></table></div>'+
 
 '<div class="sect"><h2 style="color:#d466ff">Rack B</h2>'+
-'<div class="dim">'+racks.b.u+'U · '+eB.w+' × '+eB.h+' × '+eB.d+' mm · '+inchB+' profundidad · '+psB.cond.name+'</div>'+
-'<div class="views">'+rackTopSVG(racks.b,'Vista Superior','#d466ff')+rackSideSVG(racks.b,'Lateral','#d466ff')+'</div>'+
+'<div class="dim">'+racks.b.u+'U · '+dimsIn(eB.w,eB.h,eB.d)+' · '+inchB+' profundidad · '+psB.cond.name+'</div>'+
+'<div class="views">'+rackTopSVG(racks.b,'Vista Superior','#d466ff')+rackSideSVG(racks.b,'Lateral','#d466ff')+rackFrontSVG(racks.b,'Frontal','#d466ff')+'</div>'+
 '<table><tr><th>Equipo</th><th>W×D×H mm</th><th>Peso</th><th>Watts</th><th>Amps</th><th>Slot</th><th>Ancla</th></tr>'+rB.rows+
 '<tr class="trow"><td>Total Rack B</td><td></td><td>'+rB.wtS.toFixed(1)+'kg</td><td>'+rB.wS+'W</td><td>'+rB.aS.toFixed(2)+'A</td><td colspan="2">'+tB.items+' eq</td></tr></table></div>'+
-
-(EQ.filter(e=>!isUsed(e.id)).length?
-'<div class="sect"><h2 style="color:#555570">Sin colocar</h2><table><tr><th>Equipo</th><th>W×D×H</th><th>Peso</th><th>W</th><th>A</th><th colspan="2"></th></tr>'+
-EQ.filter(e=>!isUsed(e.id)).map(eq=>'<tr style="opacity:0.35"><td>'+eq.name+'</td><td>'+eq.w+'×'+eq.d+'×'+eq.h+'</td><td>'+eq.wt+'kg</td><td>'+(eq.watts||0)+'W</td><td>'+(eq.amps||0).toFixed(2)+'A</td><td colspan="2">—</td></tr>').join('')+
-'</table></div>':'')+
 
 '<div class="footer"><span>LA PLAZUELA · Rack Designer v1</span><span>'+new Date().toLocaleDateString('es-ES')+'</span></div>'+
 '</div></body></html>';
@@ -1129,7 +1214,9 @@ async function savePreset(){
   m.className='pmsg ld';m.textContent='Guardando...';
   try{
     const data={name:n,rack_u:cur().u,rack_depth:cur().d,connector_mm:0,
-      items:JSON.stringify({a:racks.a,b:racks.b,active:activeRack}),
+      items:JSON.stringify({a:racks.a,b:racks.b,active:activeRack,
+        connMode:document.getElementById('sel-conn').value,
+        sharedCondMode:sharedCondMode}),
       updated_at:new Date().toISOString()};
     await sbFetch('rack_presets',{method:'POST',body:JSON.stringify(data)});
     m.className='pmsg ok';m.textContent='✓ '+n;
@@ -1252,7 +1339,9 @@ function updatePreset(id){
     try{
       const data={
         rack_u:cur().u,rack_depth:cur().d,connector_mm:0,
-        items:JSON.stringify({a:racks.a,b:racks.b,active:activeRack}),
+        items:JSON.stringify({a:racks.a,b:racks.b,active:activeRack,
+          connMode:document.getElementById('sel-conn').value,
+          sharedCondMode:sharedCondMode}),
         updated_at:new Date().toISOString()};
       await sbFetch('rack_presets?id=eq.'+id,{method:'PATCH',body:JSON.stringify(data)});
       m.className='pmsg ok';m.textContent='✓ '+p.name+' actualizado';
@@ -1284,6 +1373,13 @@ async function applyPreset(id){
       if(!racks.b.conditioner)racks.b.conditioner='none';
       racks.a.items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false});
       racks.b.items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false});
+      // Restore connector mode
+      if(pd.connMode){document.getElementById('sel-conn').value=pd.connMode}
+      // Restore shared cond mode
+      if(pd.sharedCondMode!==undefined){
+        sharedCondMode=!!pd.sharedCondMode;
+        document.getElementById('sel-cond-mode').value=sharedCondMode?'shared':'per-rack';
+      }
       switchRack(pd.active||'a');
     }else{
       cur().u=p.rack_u;cur().d=p.rack_depth;
