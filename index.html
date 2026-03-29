@@ -127,11 +127,11 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
 
 .view-col{display:flex;flex-direction:column;align-items:center}
 .view-label{font-size:12px;color:var(--tm);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;font-weight:500}
-.rack-box{position:relative;border:2px solid var(--brdh);border-radius:5px;background:var(--s1);display:flex;flex-direction:column;gap:0;padding:0;width:fit-content}
+.rack-box{position:relative;border:2px solid var(--brdh);border-radius:5px;background:var(--s1);display:flex;flex-direction:column;gap:0;padding:0}
 .rack-lbl{text-align:center;font-size:11px;color:var(--tm);margin:10px 0;letter-spacing:1px}
 .slot-row{display:flex;align-items:center;gap:0}
 .slot-lbl-out{font-size:10px;color:var(--tm);font-weight:600;width:28px;text-align:right;padding-right:5px;flex-shrink:0;user-select:none}
-.slot{border:1px solid var(--brd);border-radius:3px;position:relative;cursor:crosshair;flex-shrink:0}
+.slot{border:1px solid var(--brd);border-radius:3px;position:relative;cursor:crosshair;flex:1}
 
 .side-rack{border:2px solid var(--brdh);border-radius:5px;background:var(--s1);position:relative}
 .sd{position:absolute;left:0;right:0;height:1px;background:var(--brd)}
@@ -340,7 +340,6 @@ const EQ=[
 const CATS={play:'Playback (Audio Interface)',conm:'Conmutación',red:'Red',pwr:'Energía',panel:'Paneles/Rack',cab:'Cables'};
 const CO=['play','conm','red','pwr','panel','cab'];
 const RW=483,UH=44.45,SC=0.95;
-let curScale=SC; // current working scale, updated on each render
 const gEq=id=>EQ.find(e=>e.id===id);
 
 // ===== RACK COLORS =====
@@ -516,39 +515,29 @@ function renderWorkspace(){
   const rD=r.d;
   const col=rackColor(activeRack);
 
-  // ===== RESPONSIVE SCALE =====
-  // Compute scale to fit within available workspace width
-  // Top view needs: labelW(28px) + RW*S + borders(~8px) + padding
-  // We want this to fit within the workspace width
-  const wsWidth=ws.clientWidth||ws.offsetWidth||600;
-  const labelW=32; // slot label + gap
-  const pad=32; // padding + borders
-  const maxFitS=(wsWidth-labelW-pad)/RW; // scale that makes top view fit exactly
-  const S=Math.min(SC,maxFitS); // cap at 0.95, shrink on small screens
-  curScale=S; // store for interaction handlers
+  // ===== TRUE-PROPORTION SCALE FOR ALL VIEWS =====
+  const S=SC; // 0.95 px/mm — uniform scale, no exaggeration
   const tH=r.u*UH; // total height in mm
 
   // Carry-on reference dims in mm (IATA: 560×355×230mm = 22×14×9")
   const CARRYON={w:560,d:355,h:230};
 
-  const slotW=Math.round(RW*S);
   // Build top view: W (horizontal) × D (vertical)
   let topHTML=`<div class="view-col"><div class="view-label">Vista superior · <span style="color:${col}">${rackLabel(activeRack)}</span></div>
     <div class="rack-lbl" style="margin-bottom:14px">▲ trasera</div>
-    <div class="rack-box" id="rack-box" style="border-color:${col}44">`;
+    <div class="rack-box" id="rack-box" style="width:${Math.round(RW*S)+32}px;border-color:${col}44">`;
   for(let s=r.u-1;s>=0;s--){
-    topHTML+=`<div class="slot-row"><span class="slot-lbl-out">${s+1}U</span><div class="slot" data-slot="${s}" style="width:${slotW}px;height:${Math.round(rD*S)}px"></div></div>`;
+    topHTML+=`<div class="slot-row"><span class="slot-lbl-out">${s+1}U</span><div class="slot" data-slot="${s}" style="height:${Math.round(rD*S)}px"></div></div>`;
   }
   topHTML+=`</div><div class="rack-lbl" style="margin-top:14px">▼ frente</div></div>`;
 
-  // Side view: D (horizontal) × H (vertical) — FIXED scale, true proportions
-  const FS=SC; // fixed scale for side/front views (never responsive-shrunk)
-  const sideH=Math.round(tH*FS);
-  const sideW=Math.round(rD*FS);
+  // Side view: D (horizontal) × H (vertical) — TRUE proportions, no exaggeration
+  const sideH=Math.round(tH*S);
+  const sideW=Math.round(rD*S);
   let sideHTML=`<div class="view-col"><div class="view-label">Vista lateral</div>
     <div class="side-rack" id="side-rack" style="width:${sideW}px;height:${sideH}px;border-color:${col}44">`;
   for(let i=1;i<r.u;i++){
-    sideHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*FS)}px"></div>`;
+    sideHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*S)}px"></div>`;
   }
   sideHTML+=`<div class="side-lbl" style="left:2px;bottom:-16px">frente</div>`;
   sideHTML+=`<div class="side-lbl" style="right:2px;bottom:-16px">atrás</div>`;
@@ -556,11 +545,11 @@ function renderWorkspace(){
     const eq=gEq(it.id);if(!eq)continue;
     const isCeil=!!it.ceil;
     let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
-    const tp=Math.round(sideH-(bMM+eq.h)*FS);
+    const tp=Math.round(sideH-(bMM+eq.h)*S);
     const rd=rotDims(eq,it.rot||0);
-    const lp=Math.round((rD-(it.z||0)-rd.d)*FS);
-    const wp=Math.round(rd.d*FS);
-    const hp=Math.max(Math.round(eq.h*FS),4);
+    const lp=Math.round((rD-(it.z||0)-rd.d)*S);
+    const wp=Math.round(rd.d*S);
+    const hp=Math.max(Math.round(eq.h*S),4);
     let extraStyle='';
     if(eq.shape){
       const rot=it.rot||0;const connSide=(2+rot/90)%4;
@@ -577,22 +566,22 @@ function renderWorkspace(){
       ${rD}mm × ${Math.round(tH)}mm
     </div></div>`;
 
-  // Front view: W (horizontal) × H (vertical) — FIXED scale
-  const frontW=Math.round(RW*FS);
+  // Front view: W (horizontal) × H (vertical) — TRUE proportions
+  const frontW=Math.round(RW*S);
   let frontHTML=`<div class="view-col"><div class="view-label">Vista frontal</div>
     <div class="side-rack" style="width:${frontW}px;height:${sideH}px;border-color:${col}44">`;
   for(let i=1;i<r.u;i++){
-    frontHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*FS)}px"></div>`;
+    frontHTML+=`<div class="sd" style="top:${Math.round((r.u-i)*UH*S)}px"></div>`;
   }
   for(const it of r.items){
     const eq=gEq(it.id);if(!eq)continue;
     const rd=rotDims(eq,it.rot||0);
     const isCeil=!!it.ceil;
     let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
-    const tp=Math.round(sideH-(bMM+eq.h)*FS);
-    const lp=Math.round(it.x*FS);
-    const wp=Math.round(rd.w*FS);
-    const hp=Math.max(Math.round(eq.h*FS),4);
+    const tp=Math.round(sideH-(bMM+eq.h)*S);
+    const lp=Math.round(it.x*S);
+    const wp=Math.round(rd.w*S);
+    const hp=Math.max(Math.round(eq.h*S),4);
     frontHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col}"><span>${hp>=10?eq.name.split(' ')[0]:''}</span></div>`;
   }
   frontHTML+=`</div>
@@ -645,8 +634,8 @@ function onSlotDown(e,s){
   const eq=gEq(selId);if(!eq)return;
   const sl=e.currentTarget,rc=sl.getBoundingClientRect();
   const rd=rotDims(eq,0);
-  let x=Math.round((e.clientX-rc.left)/curScale-rd.w/2);
-  let z=Math.round((e.clientY-rc.top)/curScale-rd.d/2);
+  let x=Math.round((e.clientX-rc.left)/SC-rd.w/2);
+  let z=Math.round((e.clientY-rc.top)/SC-rd.d/2);
   x=Math.max(0,Math.min(RW-rd.w,x));
   z=Math.max(0,Math.min(cur().d-rd.d,z));
   const iid=eq.id+'_'+Date.now();
@@ -679,10 +668,10 @@ function onMove(e){
     if(!sl)return;
     const rc=sl.getBoundingClientRect();
     const psuW=eq.psu.w,psuD=eq.psu.d;
-    it.psuX=Math.max(0,Math.min(RW-psuW,Math.round((e.clientX-rc.left-dOff.x)/curScale)));
-    it.psuZ=Math.max(0,Math.min(cur().d-psuD,Math.round((e.clientY-rc.top-dOff.y)/curScale)));
-    drag.el.style.left=Math.round(it.psuX*curScale)+'px';
-    drag.el.style.top=Math.round(it.psuZ*curScale)+'px';
+    it.psuX=Math.max(0,Math.min(RW-psuW,Math.round((e.clientX-rc.left-dOff.x)/SC)));
+    it.psuZ=Math.max(0,Math.min(cur().d-psuD,Math.round((e.clientY-rc.top-dOff.y)/SC)));
+    drag.el.style.left=Math.round(it.psuX*SC)+'px';
+    drag.el.style.top=Math.round(it.psuZ*SC)+'px';
     return;
   }
   const eq=gEq(drag.id);
@@ -690,10 +679,10 @@ function onMove(e){
   const sl=document.querySelector(`.slot[data-slot="${drag.slot}"]`);
   if(!sl)return;
   const rc=sl.getBoundingClientRect();
-  drag.x=Math.max(0,Math.min(RW-rd.w,Math.round((e.clientX-rc.left-dOff.x)/curScale)));
-  drag.z=Math.max(0,Math.min(cur().d-rd.d,Math.round((e.clientY-rc.top-dOff.y)/curScale)));
+  drag.x=Math.max(0,Math.min(RW-rd.w,Math.round((e.clientX-rc.left-dOff.x)/SC)));
+  drag.z=Math.max(0,Math.min(cur().d-rd.d,Math.round((e.clientY-rc.top-dOff.y)/SC)));
   const el=sl.querySelector(`[data-iid="${drag.iid||drag.id}"]`);
-  if(el){el.style.left=Math.round(drag.x*curScale)+'px';el.style.top=Math.round(drag.z*curScale)+'px'}
+  if(el){el.style.left=Math.round(drag.x*SC)+'px';el.style.top=Math.round(drag.z*SC)+'px'}
 }
 
 function onUp(){if(drag){drag=null;dOff={x:0,y:0};rebuild()}}
@@ -707,7 +696,7 @@ function placeVis(it){
   // No shape class in top view — top view is always rectangular
   div.className=classes;
   div.dataset.iid=it.iid||it.id;
-  div.style.cssText=`left:${Math.round(it.x*curScale)}px;top:${Math.round(it.z*curScale)}px;width:${Math.round(rd.w*curScale)}px;height:${Math.round(rd.d*curScale)}px`;
+  div.style.cssText=`left:${Math.round(it.x*SC)}px;top:${Math.round(it.z*SC)}px;width:${Math.round(rd.w*SC)}px;height:${Math.round(rd.d*SC)}px`;
 
   const body=document.createElement('div');
   body.className='pi-body';
@@ -735,7 +724,7 @@ function placeVis(it){
       if(depth<=0)continue;
       const rs=rotSide(c.side,it.rot||0);
       const cz=document.createElement('div');cz.className=`czone ${c.type}`;
-      const dp=Math.round(depth*curScale);
+      const dp=Math.round(depth*SC);
       switch(rs){
         case 0:cz.style.cssText=`left:1px;right:1px;bottom:${-dp}px;height:${dp}px`;break;
         case 1:cz.style.cssText=`top:1px;bottom:1px;right:${-dp}px;width:${dp}px`;break;
@@ -749,10 +738,10 @@ function placeVis(it){
   // Render PSU (external power supply) as separate draggable piece in slot
   if(eq.psu&&cv&&cm!=='none'){
     const psu=eq.psu;
-    const pw=Math.round(psu.w*curScale);const pd=Math.round(psu.d*curScale);
+    const pw=Math.round(psu.w*SC);const pd=Math.round(psu.d*SC);
     // Default PSU position: next to device on the right
-    const px=it.psuX!==undefined?Math.round(it.psuX*curScale):Math.round((it.x+rd.w+5)*curScale);
-    const pz=it.psuZ!==undefined?Math.round(it.psuZ*curScale):Math.round(it.z*curScale);
+    const px=it.psuX!==undefined?Math.round(it.psuX*SC):Math.round((it.x+rd.w+5)*SC);
+    const pz=it.psuZ!==undefined?Math.round(it.psuZ*SC):Math.round(it.z*SC);
     const psuDiv=document.createElement('div');
     psuDiv.className='pi unlocked';
     psuDiv.dataset.psu=it.iid||it.id;
@@ -1328,10 +1317,6 @@ document.querySelectorAll('.sb-drag').forEach(handle=>{
 updateConnOpacityVis();
 renderRackTabs();
 rebuild();
-
-// Responsive: recalc scale on resize
-let resizeTimer;
-window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(rebuild,150)});
 
 // ===== SUPABASE =====
 const SB_URL='https://ywhbfohkfxsrqrgirtlp.supabase.co';
