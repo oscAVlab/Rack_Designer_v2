@@ -313,8 +313,8 @@ const CONDITIONERS={
 const EQ=[
   {id:'pa1u',name:'PlayAudio1U',w:483,h:44,d:200,wt:2.7,watts:15,amps:0.07,col:'#3378cc',cat:'play',conn:[{side:0,type:'ctrl',depth:5,label:'Display/Enc/HP'},{side:2,type:'audio',depth:30,label:'12×XLR out'},{side:2,type:'data',depth:25,label:'USB-C×2+Eth+MIDI'},{side:2,type:'power',depth:30,label:'IEC'}]},
   {id:'pa2u',name:'PlayAudio2U',w:483,h:87,d:200,wt:3.8,watts:30,amps:0.13,col:'#2266bb',cat:'play',conn:[{side:0,type:'ctrl',depth:8,label:'OLED+Enc+HP+MIDI'},{side:2,type:'audio',depth:35,label:'24×XLR out+4×XLR/TRS in'},{side:2,type:'data',depth:25,label:'USB-C×2+Eth×2+MIDI'},{side:2,type:'power',depth:30,label:'IEC'}]},
-  {id:'ap1',name:'Apollo Twin 1',w:160,h:66,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'play',shape:'trap-apollo',conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
-  {id:'ap2',name:'Apollo Twin 2',w:160,h:66,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'play',shape:'trap-apollo',conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
+  {id:'ap1',name:'Apollo Twin 1',w:160,h:63,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'play',shape:'trap-apollo',conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
+  {id:'ap2',name:'Apollo Twin 2',w:160,h:63,d:157,wt:1.07,watts:30,amps:0.13,col:'#7744bb',cat:'play',shape:'trap-apollo',conn:[{side:0,type:'ctrl',depth:10,label:'Hi-Z'},{side:2,type:'audio',depth:30,label:'XLR×2+TRS×4'},{side:2,type:'data',depth:20,label:'TB3'},{side:2,type:'power',depth:15,label:'DC12V'}]},
   {id:'exbox',name:'EXBOX.MD Rev2',w:140,h:42,d:140,wt:1.0,watts:12,amps:0.05,col:'#4488aa',cat:'play',conn:[{side:0,type:'ctrl',depth:3,label:'LEDs'},{side:2,type:'data',depth:20,label:'MADI SC+BNC+SFP'},{side:2,type:'data',depth:15,label:'RJ45×4'},{side:2,type:'power',depth:10,label:'Hirose×2'}]},
   {id:'pulse16',name:'Pulse16 DX',w:483,h:44,d:200,wt:2.5,watts:25,amps:0.11,col:'#cc6633',cat:'play',conn:[{side:0,type:'ctrl',depth:5,label:'TFT×2+HP+Enc'},{side:2,type:'audio',depth:30,label:'TRS×32'},{side:2,type:'data',depth:20,label:'ADAT×8+MADI+Dante×2+MIDI'},{side:2,type:'power',depth:15,label:'DC ext'}]},
   {id:'ultralite',name:'MOTU UltraLite mk5',w:218,h:45,d:175,wt:1.3,watts:15,amps:0.07,col:'#336699',cat:'play',conn:[{side:0,type:'ctrl',depth:5,label:'OLED+XLR×2+Hi-Z'},{side:2,type:'audio',depth:25,label:'TRS×10out+6in'},{side:2,type:'data',depth:15,label:'USB-C+ADAT+MIDI'},{side:2,type:'power',depth:15,label:'DC ext'}]},
@@ -530,9 +530,9 @@ function renderWorkspace(){
       ${r.u}U × ${rD}mm (${DEPTH_INCH[rD]||mmIn(rD)})<br>${dimsIn(RW,Math.round(r.u*UH),rD)}
     </div></div>`;
 
-  // Build front view — same structure as side view (absolute positioned items)
-  // Width = RW scaled, Height = total U height scaled, same sS factor
-  const fW=Math.round(RW*sS*0.25);
+  // Build front view — same structure as side view
+  // Same sS for height, same 0.4 factor for horizontal to match side view proportions
+  const fW=Math.round(RW*sS*0.4);
   let frontHTML=`<div class="view-col"><div class="view-label">Vista frontal</div>
     <div class="side-rack" style="width:${fW}px;height:${pH}px">`;
   // U division lines
@@ -546,8 +546,8 @@ function renderWorkspace(){
     const isCeil=!!it.ceil;
     let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
     const tp=Math.round(pH-(bMM+eq.h)*sS);
-    const lp=Math.round(it.x*sS*0.25);
-    const wp=Math.round(rd.w*sS*0.25);
+    const lp=Math.round(it.x*sS*0.4);
+    const wp=Math.round(rd.w*sS*0.4);
     const hp=Math.max(Math.round(eq.h*sS),8);
     frontHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col}"><span>${eq.name.split(' ')[0]}</span></div>`;
   }
@@ -944,28 +944,29 @@ function exportHTML(){
   }
 
   function rackFrontSVG(rack,label,col){
-    const fSc=1.2;const fGap=0;
-    const fW=Math.round(RW*fSc*0.2);const fUH=Math.round(UH*fSc);
-    const fH=fUH*rack.u+fGap*(rack.u-1);
-    const lblW=22;const svgW=lblW+fW+8;const svgH=fH+36;
-    const rackX=lblW+2;const rackY=22;
+    // Same sS as side SVG for consistent height, same 0.4 horizontal factor
+    const sS=1.2;const tH=rack.u*UH;
+    const pH=Math.round(tH*sS);const pW=Math.round(RW*sS*0.4);
+    const svgH=pH+36;const svgW=pW+8;
+    const rackX=4;const rackY=22;
     let svg='<svg width="'+svgW+'" height="'+svgH+'" xmlns="http://www.w3.org/2000/svg" style="background:transparent">';
     svg+='<text x="'+(svgW/2)+'" y="14" fill="'+col+'" font-size="11" font-family="monospace" text-anchor="middle" font-weight="600">'+label+'</text>';
-    svg+='<rect x="'+rackX+'" y="'+rackY+'" width="'+fW+'" height="'+fH+'" fill="#0a0a0f" stroke="'+col+'44" stroke-width="2" rx="4"/>';
-    for(let s=rack.u-1;s>=0;s--){
-      const idx=rack.u-1-s;
-      const y=rackY+idx*(fUH+fGap);
-      svg+='<rect x="'+(rackX+2)+'" y="'+(y+1)+'" width="'+(fW-4)+'" height="'+(fUH-2)+'" fill="#111118" stroke="#2a2a35" stroke-width="0.5" rx="1"/>';
-      svg+='<text x="'+(rackX-3)+'" y="'+(y+fUH/2+3)+'" fill="#555570" font-size="7" font-family="monospace" text-anchor="end">'+(s+1)+'U</text>';
-      for(const it of rack.items){
-        if(it.slot!==s)continue;
-        const eq=gEq(it.id);if(!eq)continue;
-        const rd=rotDims(eq,it.rot||0);
-        const iw=Math.round(rd.w*fSc*0.2);const ih=Math.round(eq.h*fSc);
-        const ix=rackX+2+Math.round(it.x*fSc*0.2);
-        const iy=it.ceil?(y+1):(y+fUH-ih-1);
-        svg+='<rect x="'+ix+'" y="'+iy+'" width="'+iw+'" height="'+ih+'" fill="'+eq.col+'22" stroke="'+eq.col+'88" stroke-width="1" rx="1"/>';
-      }
+    svg+='<rect x="'+rackX+'" y="'+rackY+'" width="'+pW+'" height="'+pH+'" fill="#0a0a0f" stroke="'+col+'44" stroke-width="2" rx="4"/>';
+    // U division lines
+    for(let i=1;i<rack.u;i++){
+      const y=rackY+Math.round((rack.u-i)*UH*sS);
+      svg+='<line x1="'+(rackX+3)+'" y1="'+y+'" x2="'+(rackX+pW-3)+'" y2="'+y+'" stroke="#333" stroke-width="1" stroke-dasharray="3,2"/>';
+    }
+    // Items — absolute positioned like side view
+    for(const it of rack.items){
+      const eq=gEq(it.id);if(!eq)continue;
+      const rd=rotDims(eq,it.rot||0);
+      const isCeil=!!it.ceil;
+      let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
+      const tp=rackY+Math.round(pH-(bMM+eq.h)*sS);
+      const lp=rackX+Math.round(it.x*sS*0.4);
+      const wp=Math.round(rd.w*sS*0.4);const hp=Math.max(Math.round(eq.h*sS),3);
+      svg+='<rect x="'+lp+'" y="'+tp+'" width="'+wp+'" height="'+hp+'" fill="'+eq.col+'33" stroke="'+eq.col+'88" stroke-width="1" rx="1"/>';
     }
     svg+='</svg>';return svg;
   }
