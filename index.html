@@ -295,7 +295,14 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
     <span style="color:var(--tm)">▲top=trasera ▼bottom=frente</span>
   </div>
   <div class="rack-tabs" id="rack-tabs"></div>
-  <div class="carryon-ref" id="carryon-ref">📐 Carry-on máx: 560×355×230mm (22×14×9") — IATA estándar</div>
+  <div class="carryon-ref" id="carryon-ref" style="display:flex;align-items:center;justify-content:space-between">
+    <span>📐 Carry-on máx: 560×355×230mm (22×14×9") — IATA estándar</span>
+    <span style="display:flex;align-items:center;gap:4px">
+      <button onclick="adjZoom(-1)" style="background:var(--s2);border:1px solid var(--brd);color:var(--td);width:20px;height:18px;border-radius:3px;font-size:13px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center">−</button>
+      <span id="zoom-lbl" style="font-size:9px;color:var(--td);min-width:28px;text-align:center">100%</span>
+      <button onclick="adjZoom(1)" style="background:var(--s2);border:1px solid var(--brd);color:var(--td);width:20px;height:18px;border-radius:3px;font-size:13px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center">+</button>
+    </span>
+  </div>
   <div class="workspace" id="workspace"></div>
   <div class="summary-wrap" id="summary-wrap" style="height:160px">
     <div class="summary-drag" id="summary-drag"></div>
@@ -363,6 +370,7 @@ let sharedCondMode=false; // false = per-rack, true = shared A+B
 let activeRack='a';
 let selId=null,drag=null,dOff={x:0,y:0};
 let activePresetName=''; // Track current preset name for export
+let zoomLevel=1.0; // zoom multiplier for visualizer
 
 function cur(){return racks[activeRack]}
 function useCount(id){return Object.values(racks).reduce((sum,r)=>sum+r.items.filter(i=>i.id===id).length,0)}
@@ -525,14 +533,15 @@ function renderWorkspace(){
   const wsWidth=ws.clientWidth||ws.offsetWidth||900;
   const labelW=32;
   const pad=32;
-  const neededW=labelW+pad+Math.round(RW*SC); // what top view needs at full scale
-  const S=(wsWidth>=neededW)?SC:Math.max(0.3,(wsWidth-labelW-pad)/RW); // shrink only on mobile, floor at 0.3
+  const neededW=labelW+pad+Math.round(RW*SC*zoomLevel);
+  const baseS=(wsWidth>=neededW)?SC:Math.max(0.3,(wsWidth-labelW-pad)/RW/zoomLevel);
+  const S=baseS*zoomLevel; // top view & front view horizontal scale
   curScale=S;
   const tH=r.u*UH;
 
-  // Side/front use fixed scale with height exaggeration for readability
-  const FS=SC; // fixed horizontal scale
-  const vX=2.0; // vertical exaggeration (height is tiny vs width at true scale)
+  // Side/front vertical: fixed scale with height exaggeration, zoomed
+  const FS=SC*zoomLevel; // side horizontal + all vertical base
+  const vX=2.0; // vertical exaggeration
 
   // Carry-on reference dims in mm (IATA: 560×355×230mm = 22×14×9")
   const CARRYON={w:560,d:355,h:230};
@@ -600,8 +609,8 @@ function renderWorkspace(){
       ${rD}mm × ${Math.round(tH)}mm
     </div></div>`;
 
-  // Front view: W (horizontal) × H (vertical, same exaggeration as side)
-  const frontW=Math.round(RW*FS);
+  // Front view: W (horizontal, same scale as top view) × H (vertical, exaggerated)
+  const frontW=Math.round(RW*S);
   let frontHTML=`<div class="view-col"><div class="view-label">Vista frontal</div>
     <div style="height:${alignPad}px"></div>
     <div class="side-rack" style="width:${frontW}px;height:${sideH}px;border-color:${col}44">`;
@@ -614,8 +623,8 @@ function renderWorkspace(){
     const isCeil=!!it.ceil;
     let bMM=isCeil?((it.slot+1)*UH-eq.h):(it.slot*UH);
     const tp=Math.round(sideH-(bMM+eq.h)*FS*vX);
-    const lp=Math.round(it.x*FS);
-    const wp=Math.round(rd.w*FS);
+    const lp=Math.round(it.x*S);
+    const wp=Math.round(rd.w*S);
     const hp=Math.max(Math.round(eq.h*FS*vX),6);
     frontHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col}"><span>${eq.name.split(' ')[0]}</span></div>`;
     // PSU in front view
@@ -626,8 +635,8 @@ function renderWorkspace(){
       const psuX=it.psuX!==undefined?it.psuX:(it.x+rd.w+5);
       let pBMM=psuSlot*UH;
       const pTp=Math.round(sideH-(pBMM+eq.psu.h)*FS*vX);
-      const pLp=Math.round(psuX*FS);
-      const pWp=Math.round(psuRd.w*FS);
+      const pLp=Math.round(psuX*S);
+      const pWp=Math.round(psuRd.w*S);
       const pHp=Math.max(Math.round(eq.psu.h*FS*vX),4);
       frontHTML+=`<div class="si" style="left:${pLp}px;top:${pTp}px;width:${pWp}px;height:${pHp}px;background:rgba(255,102,128,0.06);border:1px dashed #ff668066;color:#ff6680;opacity:0.6"><span style="font-size:6px">PSU</span></div>`;
     }
@@ -639,11 +648,12 @@ function renderWorkspace(){
 
   ws.innerHTML=topHTML+sideHTML+frontHTML;
 
-  // Update carry-on reference
+  // Update carry-on reference text (first span child only)
   const fits=RW<=CARRYON.w && tH<=CARRYON.h && rD<=CARRYON.d;
   const coEl=document.getElementById('carryon-ref');
   if(coEl){
-    coEl.innerHTML=`📐 Carry-on: 560×355×230mm — Rack: ${RW}×${Math.round(tH)}×${rD}mm — ${fits?'<span style="color:#4aff9f">✓ Cabe</span>':'<span style="color:#ff5c4a">✕ No cabe</span>'}`;
+    const txtSpan=coEl.querySelector('span');
+    if(txtSpan)txtSpan.innerHTML=`📐 Carry-on: 560×355×230mm — Rack: ${RW}×${Math.round(tH)}×${rD}mm — ${fits?'<span style="color:#4aff9f">✓ Cabe</span>':'<span style="color:#ff5c4a">✕ No cabe</span>'}`;
   }
 
   // Attach events to slots
@@ -835,6 +845,17 @@ function rotPsu(iid){
   const psuRd=(it.psuRot===90||it.psuRot===270)?{w:eq.psu.d,d:eq.psu.w}:{w:eq.psu.w,d:eq.psu.d};
   if(it.psuX!==undefined)it.psuX=Math.max(0,Math.min(RW-psuRd.w,it.psuX));
   if(it.psuZ!==undefined)it.psuZ=Math.max(0,Math.min(cur().d-psuRd.d,it.psuZ));
+  rebuild();
+}
+
+const ZOOM_STEPS=[0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.25,1.5,1.75,2.0];
+function adjZoom(dir){
+  const curIdx=ZOOM_STEPS.indexOf(zoomLevel);
+  let newIdx=curIdx===-1?ZOOM_STEPS.indexOf(1.0):curIdx+dir;
+  newIdx=Math.max(0,Math.min(ZOOM_STEPS.length-1,newIdx));
+  zoomLevel=ZOOM_STEPS[newIdx];
+  const lbl=document.getElementById('zoom-lbl');
+  if(lbl)lbl.textContent=Math.round(zoomLevel*100)+'%';
   rebuild();
 }
 
