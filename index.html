@@ -659,12 +659,27 @@ function renderWorkspace(){
   // Update carry-on reference text (first span child only)
   const cs=CASES[r.caseId||'none'];
   const extL=cs.extL||RW;const extW=cs.extW||rD;const extD=cs.extD||Math.round(tH);
-  const fits=extL<=CARRYON.w && extW<=CARRYON.d && extD<=CARRYON.h;
+  const margin=20; // 2cm margin
+  const axes=[
+    {name:'L',val:extL,max:CARRYON.w},
+    {name:'W',val:extW,max:CARRYON.d},
+    {name:'D',val:extD,max:CARRYON.h}
+  ];
+  const maxOver=Math.max(...axes.map(a=>a.val-a.max));
+  let fitLabel;
+  if(maxOver<=0)fitLabel='<span style="color:#4aff9f">✓ Cabe</span>';
+  else if(maxOver<=margin)fitLabel='<span style="color:#ff9944">⚠ Puede ser</span>';
+  else fitLabel='<span style="color:#ff5c4a">✕ No cabe</span>';
+  const axisDetails=axes.map(a=>{
+    const diff=a.val-a.max;
+    const c=diff<=0?'#4aff9f':diff<=margin?'#ff9944':'#ff5c4a';
+    return`<span style="color:${c}">${a.name}:${a.val}/${a.max}${diff>0?'(+'+diff+')':''}</span>`;
+  }).join(' ');
   const coEl=document.getElementById('carryon-ref');
   if(coEl){
-    const dimsLabel=cs.extL?`Case: ${extL}×${extW}×${extD}mm`:`Rack: ${RW}×${Math.round(tH)}×${rD}mm`;
+    const dimsLabel=cs.extL?'Case':'Rack';
     const txtSpan=coEl.querySelector('span');
-    if(txtSpan)txtSpan.innerHTML=`📐 Carry-on: 560×355×230mm — ${dimsLabel} — ${fits?'<span style="color:#4aff9f">✓ Cabe</span>':'<span style="color:#ff5c4a">✕ No cabe</span>'}`;
+    if(txtSpan)txtSpan.innerHTML=`📐 ${dimsLabel}: ${axisDetails} — ${fitLabel}`;
   }
 
   // Attach events to slots
@@ -956,16 +971,6 @@ function renderRackCfg(){
 
 function setCase(rk,caseId){
   racks[rk].caseId=caseId;
-  // Auto-set U and depth from case if case has them
-  const cs=CASES[caseId];
-  if(cs&&cs.u){
-    racks[rk].u=cs.u;
-    racks[rk].d=cs.d;
-    if(rk===activeRack){
-      document.getElementById('sel-u').value=cs.u;
-      document.getElementById('sel-d').value=cs.d;
-    }
-  }
   rebuild();
 }
 
