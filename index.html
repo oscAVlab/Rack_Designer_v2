@@ -361,10 +361,18 @@ function rackColor(key){
 }
 function rackLabel(key){return'Rack '+key.toUpperCase()}
 
+// ===== RACK CASES (external dimensions) =====
+const CASES={
+  'none':{name:'Sin case',extL:0,extW:0,extD:0},
+  'skb-2u-9':{name:'SKB-3i 2U 9"',u:2,d:228,extL:571,extW:356,extD:241},
+  'skb-3u-13':{name:'SKB-3i 3U 13"',u:3,d:330,extL:623,extW:492,extD:311},
+  'skb-2u-13':{name:'SKB-3i 2U 13"',u:2,d:330,extL:624,extW:457,extD:245},
+};
+
 // ===== TWO RACK STATE =====
 let racks={
-  a:{u:2,d:228,conditioner:'none',items:[]},
-  b:{u:2,d:228,conditioner:'none',items:[]}
+  a:{u:2,d:228,conditioner:'none',caseId:'none',items:[]},
+  b:{u:2,d:228,conditioner:'none',caseId:'none',items:[]}
 };
 let sharedCondMode=false; // false = per-rack, true = shared A+B
 let activeRack='a';
@@ -461,7 +469,7 @@ function addRack(){
   let newKey='';
   for(const l of letters){if(!racks[l]){newKey=l;break}}
   if(!newKey)return;
-  racks[newKey]={u:2,d:228,conditioner:'none',items:[]};
+  racks[newKey]={u:2,d:228,conditioner:'none',caseId:'none',items:[]};
   switchRack(newKey);
 }
 
@@ -649,11 +657,14 @@ function renderWorkspace(){
   ws.innerHTML=topHTML+sideHTML+frontHTML;
 
   // Update carry-on reference text (first span child only)
-  const fits=RW<=CARRYON.w && tH<=CARRYON.h && rD<=CARRYON.d;
+  const cs=CASES[r.caseId||'none'];
+  const extL=cs.extL||RW;const extW=cs.extW||rD;const extD=cs.extD||Math.round(tH);
+  const fits=extL<=CARRYON.w && extW<=CARRYON.d && extD<=CARRYON.h;
   const coEl=document.getElementById('carryon-ref');
   if(coEl){
+    const dimsLabel=cs.extL?`Case: ${extL}×${extW}×${extD}mm`:`Rack: ${RW}×${Math.round(tH)}×${rD}mm`;
     const txtSpan=coEl.querySelector('span');
-    if(txtSpan)txtSpan.innerHTML=`📐 Carry-on: 560×355×230mm — Rack: ${RW}×${Math.round(tH)}×${rD}mm — ${fits?'<span style="color:#4aff9f">✓ Cabe</span>':'<span style="color:#ff5c4a">✕ No cabe</span>'}`;
+    if(txtSpan)txtSpan.innerHTML=`📐 Carry-on: 560×355×230mm — ${dimsLabel} — ${fits?'<span style="color:#4aff9f">✓ Cabe</span>':'<span style="color:#ff5c4a">✕ No cabe</span>'}`;
   }
 
   // Attach events to slots
@@ -887,6 +898,9 @@ function renderRackCfg(){
   let html='';
   const keys=Object.keys(racks);
   
+  // Build case select options
+  const caseOpts=Object.entries(CASES).map(([id,c])=>`<option value="${id}">${c.name}</option>`).join('');
+  
   if(sharedCondMode){
     // Shared: show combined power info
     const pw=calcCombinedPower();
@@ -901,9 +915,13 @@ function renderRackCfg(){
       const r=racks[rk];
       const col=rackColor(rk);
       const inch=DEPTH_INCH[r.d]||r.d+'mm';
+      const cs=CASES[r.caseId||'none'];
+      const caseInfo=cs.extL?` · Case: ${cs.extL}×${cs.extW}×${cs.extD}mm`:'';
       html+=`<div class="cfg-rack">
         <div class="cfg-title" style="color:${col}">${rackLabel(rk)}</div>
         <div class="cfg-row"><span>${r.u}U × ${r.d}mm (${inch}) · ${RW}×${Math.round(r.u*UH)}×${r.d}mm</span><span class="v">${r.items.length} eq</span></div>
+        <div class="cfg-row"><span>Case</span><span class="v"><select onchange="setCase('${rk}',this.value)" style="background:var(--bg);border:1px solid var(--brd);color:var(--t);font-family:inherit;font-size:9px;padding:1px 3px;border-radius:2px">${caseOpts.replace('value="'+(r.caseId||'none')+'"','value="'+(r.caseId||'none')+'" selected')}</select></span></div>
+        ${caseInfo?`<div class="cfg-row"><span>Exterior</span><span class="v" style="font-size:9px">${cs.extL}×${cs.extW}×${cs.extD}mm</span></div>`:''}
       </div>`;
     }
     html+=`<div class="cfg-rack" style="border-top:1px solid var(--brd);padding-top:4px;margin-top:2px">
@@ -921,9 +939,12 @@ function renderRackCfg(){
       const maxStr=ps.cond.maxW===Infinity?'∞':`${ps.cond.maxW}W / ${ps.cond.maxA}A`;
       const col=rackColor(rk);
       const inch=DEPTH_INCH[r.d]||r.d+'mm';
+      const cs=CASES[r.caseId||'none'];
       html+=`<div class="cfg-rack">
         <div class="cfg-title" style="color:${col}">${rackLabel(rk)}</div>
         <div class="cfg-row"><span>${r.u}U × ${r.d}mm (${inch}) · ${RW}×${Math.round(r.u*UH)}×${r.d}mm</span><span class="v">${r.items.length} eq</span></div>
+        <div class="cfg-row"><span>Case</span><span class="v"><select onchange="setCase('${rk}',this.value)" style="background:var(--bg);border:1px solid var(--brd);color:var(--t);font-family:inherit;font-size:9px;padding:1px 3px;border-radius:2px">${caseOpts.replace('value="'+(r.caseId||'none')+'"','value="'+(r.caseId||'none')+'" selected')}</select></span></div>
+        ${cs.extL?`<div class="cfg-row"><span>Exterior</span><span class="v" style="font-size:9px">${cs.extL}×${cs.extW}×${cs.extD}mm</span></div>`:''}
         <div class="cfg-row"><span>Power Conditioner</span><span class="v">${condName}</span></div>
         <div class="cfg-row"><span>Consumo</span><span style="${pwCls}">${ps.totalW}W / ${ps.totalA.toFixed(2)}A</span></div>
         <div class="cfg-row"><span>Límite</span><span class="v">${maxStr}</span></div>
@@ -931,6 +952,21 @@ function renderRackCfg(){
     }
   }
   el.innerHTML=html;
+}
+
+function setCase(rk,caseId){
+  racks[rk].caseId=caseId;
+  // Auto-set U and depth from case if case has them
+  const cs=CASES[caseId];
+  if(cs&&cs.u){
+    racks[rk].u=cs.u;
+    racks[rk].d=cs.d;
+    if(rk===activeRack){
+      document.getElementById('sel-u').value=cs.u;
+      document.getElementById('sel-d').value=cs.d;
+    }
+  }
+  rebuild();
 }
 
 function updateStats(){
@@ -958,31 +994,40 @@ function renderSummary(){
   const keys=Object.keys(racks);
   for(const k of keys){for(const i of racks[k].items)allPlaced.add(i.id)}
 
-  for(const eq of EQ){
-    // Find which rack(s) contain this equipment
-    let locHTML='';
-    let placed=false;
-    for(const k of keys){
-      const found=racks[k].items.find(i=>i.id===eq.id);
-      if(found){
-        placed=true;
-        const col=rackColor(k);
-        locHTML+=`<span class="loc" style="color:${col}">${rackLabel(k)} · ${found.slot+1}U</span> `;
-        break;
-      }
+  // Build rows grouped by rack, then unplaced
+  for(const k of keys){
+    const r=racks[k];
+    if(!r.items.length)continue;
+    const col=rackColor(k);
+    rows+=`<tr><td colspan="6" style="padding:6px 6px 2px;font-size:10px;font-weight:600;color:${col};border-bottom:1px solid ${col}33">${rackLabel(k)}</td></tr>`;
+    for(const it of r.items){
+      const eq=gEq(it.id);if(!eq)continue;
+      totalWt+=eq.wt;totalW+=eq.watts||0;totalA+=eq.amps||0;
+      rows+=`<tr>
+        <td><span class="dot" style="background:${eq.col}"></span>${eq.name}</td>
+        <td>${eq.w}×${eq.d}×${eq.h} <span style="color:var(--tm)">(${mmIn(eq.w)}×${mmIn(eq.d)}×${mmIn(eq.h)})</span></td>
+        <td>${eq.wt}kg</td>
+        <td>${eq.watts||0}W</td>
+        <td>${(eq.amps||0).toFixed(2)}A</td>
+        <td><span class="loc" style="color:${col}">${it.slot+1}U</span></td>
+      </tr>`;
     }
-    if(!placed)locHTML=`<span class="loc out">— sin colocar —</span>`;
+  }
 
-    if(placed){totalWt+=eq.wt;totalW+=eq.watts||0;totalA+=eq.amps||0}
-
-    rows+=`<tr style="opacity:${placed?1:0.4}">
-      <td><span class="dot" style="background:${eq.col}"></span>${eq.name}</td>
-      <td>${eq.w}×${eq.d}×${eq.h} <span style="color:var(--tm)">(${mmIn(eq.w)}×${mmIn(eq.d)}×${mmIn(eq.h)})</span></td>
-      <td>${eq.wt}kg</td>
-      <td>${eq.watts||0}W</td>
-      <td>${(eq.amps||0).toFixed(2)}A</td>
-      <td>${locHTML}</td>
-    </tr>`;
+  // Unplaced equipment at end
+  const unplaced=EQ.filter(eq=>!allPlaced.has(eq.id));
+  if(unplaced.length){
+    rows+=`<tr><td colspan="6" style="padding:6px 6px 2px;font-size:10px;font-weight:600;color:var(--tm);border-bottom:1px solid var(--brd)">Sin colocar</td></tr>`;
+    for(const eq of unplaced){
+      rows+=`<tr style="opacity:0.4">
+        <td><span class="dot" style="background:${eq.col}"></span>${eq.name}</td>
+        <td>${eq.w}×${eq.d}×${eq.h} <span style="color:var(--tm)">(${mmIn(eq.w)}×${mmIn(eq.d)}×${mmIn(eq.h)})</span></td>
+        <td>${eq.wt}kg</td>
+        <td>${eq.watts||0}W</td>
+        <td>${(eq.amps||0).toFixed(2)}A</td>
+        <td><span class="loc out">—</span></td>
+      </tr>`;
+    }
   }
 
   // Build per-rack summary line with colored labels
@@ -1007,7 +1052,7 @@ function renderSummary(){
     <div class="sum-total">
       ${rackSummaries}
       <span>Total: <strong style="color:var(--t)">${allPlaced.size} eq · ${totalWt.toFixed(1)}kg · ${totalW}W · ${totalA.toFixed(2)}A</strong></span>
-      <span style="color:var(--tm)">Sin colocar: ${EQ.length-allPlaced.size}</span>
+      <span style="color:var(--tm)">Sin colocar: ${unplaced.length}</span>
     </div>
     <table class="sum-table">
       <tr><th>Equipo</th><th>W×D×H mm</th><th>Peso</th><th>Watts</th><th>Amps</th><th>Ubicación</th></tr>
@@ -1399,7 +1444,7 @@ function importJSON(evt){
       racks={};
       for(const k of rackKeys){
         racks[k]=imported[k];
-        if(!racks[k].conditioner)racks[k].conditioner='none';
+        if(!racks[k].conditioner)racks[k].conditioner='none';if(!racks[k].caseId)racks[k].caseId='none';
       }
       
       if(imported.sharedCondMode!==undefined){
@@ -1682,14 +1727,14 @@ async function applyPreset(id){
         racks={};
         for(const k of rackKeys){
           racks[k]=pd[k];
-          if(!racks[k].conditioner)racks[k].conditioner='none';
+          if(!racks[k].conditioner)racks[k].conditioner='none';if(!racks[k].caseId)racks[k].caseId='none';
           racks[k].items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false;if(!i.iid)i.iid=i.id+'_'+Math.random().toString(36).slice(2,8)});
         }
       }else{
         // Legacy format with just a,b
-        racks={a:pd.a||{u:2,d:228,conditioner:'none',items:[]},b:pd.b||{u:2,d:228,conditioner:'none',items:[]}};
+        racks={a:pd.a||{u:2,d:228,conditioner:'none',caseId:'none',items:[]},b:pd.b||{u:2,d:228,conditioner:'none',caseId:'none',items:[]}};
         for(const k of Object.keys(racks)){
-          if(!racks[k].conditioner)racks[k].conditioner='none';
+          if(!racks[k].conditioner)racks[k].conditioner='none';if(!racks[k].caseId)racks[k].caseId='none';
           racks[k].items.forEach(i=>{if(!i.rot)i.rot=0;if(i.showConn===undefined)i.showConn=true;if(i.ceil===undefined)i.ceil=false;if(!i.iid)i.iid=i.id+'_'+Math.random().toString(36).slice(2,8)});
         }
       }
