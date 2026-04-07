@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rack Designer v2 _beta</title>
+<title>RackDesigner v2</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=DM+Sans:wght@400;500;600;700&display=swap');
 :root{--bg:#0b0b0e;--s1:#111115;--s2:#19191f;--s3:#222230;--brd:#2a2a35;--brdh:#3e3e4a;--t:#e8e8f0;--td:#8888a0;--tm:#555570}
@@ -177,6 +177,35 @@ body{background:var(--bg);color:var(--t);font-family:'IBM Plex Mono',monospace;f
 
 .pwr-warn{color:#ff5c4a;font-weight:600}
 .pwr-ok{color:#ff6680}
+
+/* Panel Editor Modal */
+.panel-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:center;justify-content:center}
+.panel-editor{background:var(--s1);border:1px solid var(--brd);border-radius:8px;padding:20px;width:90vw;max-width:900px;max-height:90vh;overflow-y:auto}
+.panel-editor h2{font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.panel-editor h2 button{background:var(--s2);border:1px solid var(--brd);color:var(--td);padding:4px 12px;border-radius:3px;font-family:inherit;font-size:11px;cursor:pointer}
+.panel-editor h2 button:hover{border-color:var(--brdh);color:var(--t)}
+.panel-strip-wrap{margin:16px 0;overflow-x:auto;padding:40px 0 20px}
+.panel-strip{background:#16161a;border:2px solid #333;border-radius:4px;position:relative;margin:0 auto;overflow:hidden}
+.panel-strip .pc{position:absolute;top:50%;transform:translate(-50%,-50%);cursor:move;display:flex;flex-direction:column;align-items:center;z-index:5}
+.panel-strip .ps-grid-line{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.07);pointer-events:none}
+.panel-strip .ps-slot-num{position:absolute;bottom:3px;font-size:7px;color:#3a3a50;pointer-events:none;transform:translateX(-50%)}
+.panel-strip .pc .pc-type-lbl{font-size:8px;color:var(--td);margin-top:2px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:60px}
+.panel-strip .pc .pc-shape{border-radius:50%;border:2px solid #555;background:#1a1a1a;display:flex;align-items:center;justify-content:center;color:var(--td);flex-shrink:0}
+.panel-strip .pc .pc-shape.xlr-f{border-color:#ff9944}
+.panel-strip .pc .pc-shape.xlr-m{border-color:#ff9944;background:#222}
+.panel-strip .pc .pc-shape.pwr-in{border-color:#4466ff}
+.panel-strip .pc .pc-shape.pwr-out{border-color:#4466ff;background:#222}
+.panel-strip .pc .pc-shape.eth{border-color:#cc8800;border-radius:4px;width:36px;height:30px}
+.panel-strip .pc .pc-shape.blank{border-color:#444;border-radius:4px;width:20px;height:36px;background:#111}
+.panel-strip .pc .pc-lbl{font-size:8px;color:var(--td);margin-top:4px;max-width:60px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.panel-strip .pc:hover .pc-lbl{color:var(--t)}
+.panel-strip .pc .pc-del{position:absolute;top:-14px;right:-10px;width:14px;height:14px;border-radius:50%;background:#ff5c4a;color:#fff;font-size:9px;cursor:pointer;border:none;display:none;align-items:center;justify-content:center;line-height:1}
+.panel-strip .pc:hover .pc-del{display:flex}
+.pe-conn-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.pe-conn-bar button{background:var(--s2);border:1px solid var(--brd);color:var(--t);padding:5px 10px;border-radius:3px;font-family:inherit;font-size:10px;cursor:pointer}
+.pe-conn-bar button:hover{border-color:var(--brdh);background:var(--s3)}
+.pe-lbl-edit{background:var(--bg);border:1px solid var(--brd);color:var(--t);font-family:inherit;font-size:9px;padding:2px 4px;border-radius:3px;text-align:center;min-width:32px;max-width:100%}
+.pe-lbl-edit:focus{border-color:#4a9fff;outline:none}
 
 /* ===== RESPONSIVE ===== */
 @media(max-width:1200px){
@@ -635,6 +664,19 @@ function renderWorkspace(){
     const wp=Math.round(rd.w*S);
     const hp=Math.max(Math.round(eq.h*FS*vX),6);
     frontHTML+=`<div class="si" style="left:${lp}px;top:${tp}px;width:${wp}px;height:${hp}px;background:${eq.col}33;border:1px solid ${eq.col}88;color:${eq.col}"><span>${eq.name.split(' ')[0]}</span></div>`;
+    // Panel connectors in front view
+    if(it.panelDesign&&it.panelDesign.length>0&&isPanel(it.id)){
+      const pScale=S; // horizontal scale matches front view
+      for(const pc of it.panelDesign){
+        const pci=PCONN[pc.type];if(!pci)continue;
+        const pcx=lp+Math.round(pc.x*pScale);
+        const pcy=tp+2;
+        const pcw=Math.max(Math.round(pci.w*pScale),4);
+        const pch=hp-4;
+        const pcCol=pc.type.includes('xlr')?'#ff9944':pc.type.includes('pwr')?'#4466ff':pc.type==='eth'?'#cc8800':pc.type==='usb'?'#44aaff':'#444';
+        frontHTML+=`<div class="si" style="left:${pcx}px;top:${pcy}px;width:${pcw}px;height:${pch}px;background:${pcCol}22;border:1px solid ${pcCol}88;border-radius:${pc.type.includes('xlr')?'50%':'2px'};color:${pcCol};font-size:6px;z-index:6"><span>${pch>12?pc.label:''}</span></div>`;
+      }
+    }
     // PSU in front view
     if(eq.psu){
       const psuSlot=it.psuSlot!==undefined?it.psuSlot:it.slot;
@@ -807,7 +849,8 @@ function placeVis(it){
   const cv=it.showConn!==false;
   const isCeil=!!it.ceil;
   const btns=document.createElement('span');btns.className='pb';
-  btns.innerHTML=`<button class="pbtn" onclick="event.stopPropagation();rotIt('${iid}')">🔄</button>
+  const panelBtn=isPanel(it.id)?`<button class="pbtn" onclick="event.stopPropagation();openPanelEditor('${iid}')" title="Diseñar panel">✏</button>`:'';
+  btns.innerHTML=`${panelBtn}<button class="pbtn" onclick="event.stopPropagation();rotIt('${iid}')">🔄</button>
     <button class="pbtn" onclick="event.stopPropagation();togConn('${iid}')">${cv?'📐':'📏'}</button>
     <button class="pbtn" onclick="event.stopPropagation();togCeil('${iid}')" title="${isCeil?'Anclado al techo':'Anclado al piso'}">${isCeil?'⬆':'⬇'}</button>
     <button class="pbtn" onclick="event.stopPropagation();togLock('${iid}')">${it.locked?'🔓':'🔒'}</button>
@@ -893,6 +936,204 @@ function togCeil(iid){const i=cur().items.find(x=>x.iid===iid);if(i)i.ceil=!i.ce
 function togConn(iid){const i=cur().items.find(x=>x.iid===iid);if(i)i.showConn=!i.showConn;rebuild()}
 function remIt(iid){cur().items=cur().items.filter(i=>i.iid!==iid);rebuild()}
 function clearAll(){cur().items=[];selId=null;rebuild()}
+
+// ===== PANEL DESIGNER =====
+const PCONN={
+  'xlr-f':{name:'XLR Hembra',model:'NC3FD-LX',w:24,shape:'xlr-f',defLabel:'IN'},
+  'xlr-m':{name:'XLR Macho',model:'NC3MD-LX',w:24,shape:'xlr-m',defLabel:'OUT'},
+  'pwr-in':{name:'PowerCON In',model:'NAC3MPXXA',w:28,shape:'pwr-in',defLabel:'AC IN'},
+  'pwr-out':{name:'PowerCON Out',model:'NAC3MPXXB',w:28,shape:'pwr-out',defLabel:'AC OUT'},
+  'eth':{name:'Ethercon',model:'NE8FDP',w:22,shape:'eth',defLabel:'DATA'},
+  'usb':{name:'USB-C',model:'NAUSB-W',w:18,shape:'usb',defLabel:'USB'},
+  'blank':{name:'Blank',model:'DBA-BL',w:12,shape:'blank',defLabel:'—'}
+};
+let panelEditIid=null;
+let panelDragConn=null;
+
+function isPanel(eqId){const eq=gEq(eqId);return eq&&eq.cat==='panel'&&eq.id!=='bandeja'}
+
+function openPanelEditor(iid){
+  const it=cur().items.find(i=>i.iid===iid);
+  if(!it)return;
+  if(!it.panelDesign)it.panelDesign=[];
+  if(!it.panelSlots)it.panelSlots=12;
+  panelEditIid=iid;
+  renderPanelEditor();
+}
+
+function closePanelEditor(){
+  panelEditIid=null;
+  const m=document.querySelector('.panel-modal');
+  if(m)m.remove();
+  rebuild();
+}
+
+function setPanelSlots(n){
+  const it=cur().items.find(i=>i.iid===panelEditIid);
+  if(!it)return;
+  it.panelSlots=n;
+  // Clamp connectors to new slot count
+  it.panelDesign.forEach(c=>{if(c.slot>=n)c.slot=n-1});
+  renderPanelEditor();
+}
+
+function addPanelConn(type){
+  const it=cur().items.find(i=>i.iid===panelEditIid);
+  if(!it)return;
+  const pc=PCONN[type];if(!pc)return;
+  const slots=it.panelSlots||12;
+  // Find first empty slot
+  const usedSlots=new Set(it.panelDesign.map(c=>c.slot||0));
+  let freeSlot=0;
+  for(let i=0;i<slots;i++){if(!usedSlots.has(i)){freeSlot=i;break}}
+  const num=it.panelDesign.filter(c=>c.type===type).length+1;
+  it.panelDesign.push({id:Date.now(),type,slot:freeSlot,label:pc.defLabel+' '+num});
+  renderPanelEditor();
+}
+
+function removePanelConn(cid){
+  const it=cur().items.find(i=>i.iid===panelEditIid);
+  if(!it)return;
+  it.panelDesign=it.panelDesign.filter(c=>c.id!==cid);
+  renderPanelEditor();
+}
+
+function updatePanelLabel(cid,val){
+  const it=cur().items.find(i=>i.iid===panelEditIid);
+  if(!it)return;
+  const c=it.panelDesign.find(c=>c.id===cid);
+  if(c)c.label=val;
+}
+
+function renderPanelEditor(){
+  const it=cur().items.find(i=>i.iid===panelEditIid);
+  if(!it)return;
+  const eq=gEq(it.id);if(!eq)return;
+  if(!it.panelSlots)it.panelSlots=12;
+
+  const slots=it.panelSlots;
+  const PANEL_MM=eq.w; // 483mm for 1U panel
+  const slotMM=PANEL_MM/slots;
+  const stripW=Math.min(820,Math.max(400,PANEL_MM*1.5));
+  const slotPx=stripW/slots;
+  const shapeSz=Math.max(18,Math.min(36,Math.round(slotPx*0.62)));
+  const stripH=shapeSz+52;
+
+  let modal=document.querySelector('.panel-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.className='panel-modal';
+    modal.addEventListener('click',e=>{if(e.target===modal)closePanelEditor()});
+    document.body.appendChild(modal);
+  }
+
+  // Grid lines and slot numbers
+  let gridHTML='';
+  for(let s=0;s<slots;s++){
+    const x=s*slotPx;
+    gridHTML+=`<div class="ps-grid-line" style="left:${x}px"></div>`;
+    gridHTML+=`<div class="ps-slot-num" style="left:${x+slotPx/2}px">${s+1}</div>`;
+  }
+  // Right border
+  gridHTML+=`<div class="ps-grid-line" style="left:${slots*slotPx}px"></div>`;
+
+  // Migrate old x-based connectors to slot-based
+  it.panelDesign.forEach(c=>{
+    if(c.slot===undefined&&c.x!==undefined){
+      c.slot=Math.max(0,Math.min(slots-1,Math.round(c.x/slotMM)));
+      delete c.x;
+    }
+  });
+
+  // Build connector HTML
+  let connHTML=it.panelDesign.map(c=>{
+    const pc=PCONN[c.type];if(!pc)return'';
+    const slotIdx=Math.max(0,Math.min(slots-1,c.slot||0));
+    const px=slotIdx*slotPx+slotPx/2;
+    // Shape styling: XLR/PowerCON = circle, Ethercon/USB = rounded rect, Blank = thin rect
+    let shapeExtra='';
+    let shapeContent='';
+    if(c.type==='xlr-f'||c.type==='xlr-m'){
+      shapeExtra='border-radius:50%';
+      shapeContent='<svg width="60%" height="60%" viewBox="0 0 10 10"><circle cx="5" cy="3" r="1.2" fill="#888"/><circle cx="2.5" cy="7.5" r="1.2" fill="#888"/><circle cx="7.5" cy="7.5" r="1.2" fill="#888"/></svg>';
+    } else if(c.type==='pwr-in'||c.type==='pwr-out'){
+      shapeExtra='border-radius:50%';
+      shapeContent='<svg width="60%" height="60%" viewBox="0 0 10 10"><circle cx="5" cy="5" r="3.5" fill="none" stroke="#6688ff" stroke-width="1.5"/><line x1="5" y1="1.5" x2="5" y2="4.5" stroke="#6688ff" stroke-width="1.2"/></svg>';
+    } else if(c.type==='eth'){
+      shapeExtra='border-radius:3px;width:'+Math.round(shapeSz*0.9)+'px!important;height:'+Math.round(shapeSz*0.7)+'px!important';
+      shapeContent='<svg width="60%" height="60%" viewBox="0 0 10 8"><rect x="1" y="2" width="8" height="5" rx="1" fill="none" stroke="#aa8800" stroke-width="1"/></svg>';
+    } else if(c.type==='usb'){
+      shapeExtra='border-radius:4px;width:'+Math.round(shapeSz*0.75)+'px!important;height:'+Math.round(shapeSz*0.55)+'px!important';
+      shapeContent='⊡';
+    } else {
+      shapeExtra='border-radius:3px;width:'+Math.round(shapeSz*0.4)+'px!important;height:'+Math.round(shapeSz*0.85)+'px!important;background:#111';
+      shapeContent='';
+    }
+    const labelW=Math.max(32,slotPx-4);
+    return`<div class="pc" data-cid="${c.id}" data-slot="${slotIdx}" style="left:${px}px" onmousedown="startPanelDrag(event,${c.id})">
+      <button class="pc-del" onclick="event.stopPropagation();removePanelConn(${c.id})">✕</button>
+      <div class="pc-shape ${pc.shape}" style="width:${shapeSz}px;height:${shapeSz}px;font-size:${Math.round(shapeSz*0.25)}px;${shapeExtra}">${shapeContent}</div>
+      <div class="pc-type-lbl" style="max-width:${labelW}px">${pc.name.replace('Hembra','♀').replace('Macho','♂')}</div>
+      <input class="pe-lbl-edit" value="${c.label.replace(/"/g,'&quot;')}" onclick="event.stopPropagation()" oninput="updatePanelLabel(${c.id},this.value)" style="width:${labelW}px">
+    </div>`;
+  }).join('');
+
+  modal.innerHTML=`<div class="panel-editor">
+    <h2><span>✏ ${eq.name} — Panel Designer</span><button onclick="closePanelEditor()">✕ Cerrar</button></h2>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;font-size:11px;flex-wrap:wrap">
+      <span style="color:var(--td);font-weight:600">Grid:</span>
+      <label style="cursor:pointer;color:${slots===8?'#4a9fff':'var(--td)'}"><input type="radio" name="pg-slots" value="8" ${slots===8?'checked':''} onchange="setPanelSlots(8)" style="margin-right:4px">8 slots <span style="color:var(--tm);font-size:10px">(${(PANEL_MM/8).toFixed(1)}mm)</span></label>
+      <label style="cursor:pointer;color:${slots===12?'#4a9fff':'var(--td)'}"><input type="radio" name="pg-slots" value="12" ${slots===12?'checked':''} onchange="setPanelSlots(12)" style="margin-right:4px">12 slots <span style="color:var(--tm);font-size:10px">(${(PANEL_MM/12).toFixed(1)}mm)</span></label>
+      <span style="color:var(--tm);font-size:10px;border-left:1px solid var(--brd);padding-left:12px">Panel: ${PANEL_MM}mm · ${it.panelDesign.length}/${slots} slots usados</span>
+    </div>
+    <div class="pe-conn-bar">
+      ${Object.entries(PCONN).map(([k,v])=>`<button onclick="addPanelConn('${k}')">${v.name}</button>`).join('')}
+    </div>
+    <div class="panel-strip-wrap">
+      <div class="panel-strip" id="panel-strip" style="width:${stripW}px;height:${stripH}px"
+           onmousemove="doPanelDrag(event)" onmouseup="endPanelDrag(event)" onmouseleave="endPanelDrag(event)">
+        ${gridHTML}
+        ${connHTML}
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--tm);text-align:center;margin-top:6px">Arrastra conectores entre slots · Click ✕ para eliminar</div>
+  </div>`;
+}
+
+function startPanelDrag(e,cid){
+  e.preventDefault();
+  e.stopPropagation();
+  const it=cur().items.find(i=>i.iid===panelEditIid);
+  if(!it)return;
+  const c=it.panelDesign.find(c=>c.id===cid);
+  if(!c)return;
+  panelDragConn={c};
+}
+
+function doPanelDrag(e){
+  if(!panelDragConn)return;
+  const strip=document.getElementById('panel-strip');
+  if(!strip)return;
+  const it=cur().items.find(i=>i.iid===panelEditIid);
+  if(!it)return;
+  const slots=it.panelSlots||12;
+  const rc=strip.getBoundingClientRect();
+  const slotPx=rc.width/slots;
+  const relX=e.clientX-rc.left;
+  const slotIdx=Math.max(0,Math.min(slots-1,Math.floor(relX/slotPx)));
+  if(panelDragConn.c.slot!==slotIdx){
+    panelDragConn.c.slot=slotIdx;
+    const el=strip.querySelector(`[data-cid="${panelDragConn.c.id}"]`);
+    if(el){el.style.left=Math.round((slotIdx+0.5)*slotPx)+'px';el.dataset.slot=slotIdx}
+  }
+}
+
+function endPanelDrag(e){
+  if(panelDragConn){
+    panelDragConn=null;
+    renderPanelEditor();
+  }
+}
 
 // ===== COLLAPSIBLE SIDEBAR SECTIONS =====
 function togSection(id){
@@ -1278,7 +1519,25 @@ function exportHTML(){
     const rows=rack.items.map(it=>{
       const eq=gEq(it.id);if(!eq)return'';
       wtS+=eq.wt;wS+=eq.watts||0;aS+=eq.amps||0;
-      return'<tr><td><span class="dot" style="background:'+eq.col+'"></span>'+eq.name+'</td><td>'+dimsIn(eq.w,eq.d,eq.h)+'</td><td>'+eq.wt+'kg</td><td>'+(eq.watts||0)+'W</td><td>'+(eq.amps||0).toFixed(2)+'A</td><td>'+(it.slot+1)+'U</td><td>'+(it.ceil?'Techo':'Piso')+'</td></tr>';
+      let panelRows='';
+      if(it.panelDesign&&it.panelDesign.length>0){
+        const slots=it.panelSlots||12;
+        const sorted=[...it.panelDesign].sort((a,b)=>(a.slot||0)-(b.slot||0));
+        panelRows='<tr><td colspan="7" style="padding:0 0 0 24px;background:#0d0d12"><table style="width:100%;border-collapse:collapse;margin:4px 0">'+
+          '<tr><td style="color:#2a2a45;font-size:9px;padding:3px 8px;letter-spacing:1px;text-transform:uppercase;font-weight:600;border-bottom:1px solid #1a1a25" colspan="4">PANEL CONECTORES — '+slots+' slots ('+Number((eq.w/slots).toFixed(1))+'mm/slot)</td></tr>'+
+          sorted.map(c=>{
+            const pc=PCONN[c.type];
+            const slotN=(c.slot||0)+1;
+            const typeCol=c.type.includes('xlr')?'#ff9944':c.type.includes('pwr')?'#ff4466':c.type.includes('eth')||c.type==='usb'?'#44aaff':'#888';
+            return'<tr><td style="padding:2px 8px;font-size:10px;color:#666688;width:40px">'+slotN+'</td>'+
+              '<td style="padding:2px 8px;font-size:10px;color:'+typeCol+'">'+((pc&&pc.name)||c.type)+'</td>'+
+              '<td style="padding:2px 8px;font-size:10px;font-weight:600;color:#c8c8d4">'+c.label+'</td>'+
+              '<td style="padding:2px 8px;font-size:9px;color:#444458">'+((pc&&pc.model)||'')+'</td></tr>'
+          }).join('')+
+          '</table></td></tr>';
+      }
+      const mainRow='<tr><td><span class="dot" style="background:'+eq.col+'"></span>'+eq.name+(it.panelDesign&&it.panelDesign.length?'<span style="font-size:9px;color:#555580;margin-left:6px">▸ '+it.panelDesign.length+' conect.</span>':'')+'</td><td>'+dimsIn(eq.w,eq.d,eq.h)+'</td><td>'+eq.wt+'kg</td><td>'+(eq.watts||0)+'W</td><td>'+(eq.amps||0).toFixed(2)+'A</td><td>'+(it.slot+1)+'U</td><td>'+(it.ceil?'Techo':'Piso')+'</td></tr>';
+      return mainRow+panelRows;
     }).join('');
     return{rows,wtS,wS,aS};
   }
@@ -1305,9 +1564,40 @@ function exportHTML(){
     const r=racks[k];const t=allTotals[k];const e=allExterior[k];const ps=allPower[k];const col=rackColor(k);
     const inch=DEPTH_INCH[r.d]||'?';
     const rd=rackRows(r);
+    // Build panel connector detail sections
+    const panelItems=r.items.filter(it=>it.panelDesign&&it.panelDesign.length>0);
+    let panelSect='';
+    if(panelItems.length>0){
+      panelSect='<div style="margin:16px 0;padding:12px 16px;background:#0d0d12;border:1px solid #1e1e28;border-radius:6px">'+
+        '<div style="font-size:9px;color:#444458;letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-bottom:12px">PANELES CONFIGURADOS</div>'+
+        panelItems.map(it=>{
+          const eq=gEq(it.id);if(!eq)return'';
+          const slots=it.panelSlots||12;
+          const slotMM=(eq.w/slots).toFixed(1);
+          const sorted=[...it.panelDesign].sort((a,b)=>(a.slot||0)-(b.slot||0));
+          const connTypeColors={xlr_f:'#ff9944','xlr-f':'#ff9944','xlr-m':'#ff9944','pwr-in':'#ff4466','pwr-out':'#ff4466','eth':'#44aaff','usb':'#44aaff','blank':'#555'};
+          return'<div style="margin-bottom:12px">'+
+            '<div style="font-size:12px;font-weight:600;color:'+col+';margin-bottom:6px">'+eq.name+' — '+slots+' slots × '+slotMM+'mm/slot</div>'+
+            '<div style="display:flex;flex-wrap:wrap;gap:4px">'+
+            sorted.map(c=>{
+              const pc=PCONN[c.type];
+              const tc=connTypeColors[c.type]||'#888';
+              const slotN=(c.slot||0)+1;
+              return'<div style="background:#111115;border:1px solid '+tc+'44;border-radius:4px;padding:4px 10px;font-size:10px">'+
+                '<span style="color:#444;margin-right:4px">'+slotN+'</span>'+
+                '<span style="color:'+tc+';margin-right:6px">'+(pc?pc.name:c.type)+'</span>'+
+                '<strong style="color:#e8e8f0">'+c.label+'</strong>'+
+                '<span style="color:#333348;margin-left:6px;font-size:9px">'+(pc?pc.model:'')+'</span>'+
+              '</div>'
+            }).join('')+
+            '</div></div>'
+        }).join('')+
+      '</div>';
+    }
     racksHTML+=`<div class="sect"><h2 style="color:${col}">${rackLabel(k)}</h2>`+
       `<div class="dim">${r.u}U · ${dimsIn(e.w,e.h,e.d)} · ${inch} profundidad · ${ps.cond.name}</div>`+
       `<div class="views">${rackTopSVG(r,'Vista Superior',col)}${rackSideSVG(r,'Lateral',col)}${rackFrontSVG(r,'Frontal',col)}</div>`+
+      panelSect+
       `<table><tr><th>Equipo</th><th>W×D×H mm</th><th>Peso</th><th>Watts</th><th>Amps</th><th>Slot</th><th>Ancla</th></tr>${rd.rows}`+
       `<tr class="trow"><td>Total ${rackLabel(k)}</td><td></td><td>${rd.wtS.toFixed(1)}kg</td><td>${rd.wS}W</td><td>${rd.aS.toFixed(2)}A</td><td colspan="2">${t.items} eq</td></tr></table></div>`;
   }
